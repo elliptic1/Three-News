@@ -1,7 +1,7 @@
 package com.tbse.threenews;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,7 +10,7 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -99,16 +99,17 @@ public class MainNewsActivity extends AppCompatActivity
             if (AUTO_HIDE) {
                 delayedHide(AUTO_HIDE_DELAY_MILLIS);
             }
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
+                if (cursor.moveToFirst()) {
+                    Log.d("nano", cursor.getString(2));
+                } else {
+                    Log.e("nano", "nothing in cursor");
+                }
+            }
             return false;
         }
     };
-
-    @Override
-    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
-        return super.onCreateView(parent, name, context, attrs);
-
-
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +135,14 @@ public class MainNewsActivity extends AppCompatActivity
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
 
+        final ContentValues values = new ContentValues();
+        values.put(IMG, "img");
+        values.put(HEADLINE, "headline");
+        values.put(LINK, "link");
+        values.put(DATE, "date");
+        values.put(PRIORITY, "pri");
+
+        getContentResolver().insert(CONTENT_URI, values);
     }
 
     @Override
@@ -144,6 +153,7 @@ public class MainNewsActivity extends AppCompatActivity
         // created, to briefly hint to the user that UI controls
         // are available.
         delayedHide(100);
+
     }
 
     private void toggle() {
@@ -156,7 +166,7 @@ public class MainNewsActivity extends AppCompatActivity
 
     private void hide() {
         // Hide UI first
-        ActionBar actionBar = getSupportActionBar();
+        final ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.hide();
         }

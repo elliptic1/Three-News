@@ -58,10 +58,8 @@ public class MyContentProvider extends ContentProvider {
                 break;
             case NEWS_ID:
                 final String id = uri.getPathSegments().get(1);
-                count = db.delete(TABLENAME,
-                        _ID + " = " + id +
-                                (!TextUtils.isEmpty(selection) ? " AND (" + selection
-                                        + ")" : ""),
+                count = db.delete(TABLENAME, _ID + " = " + id +
+                                (!TextUtils.isEmpty(selection) ? " AND (" + selection + ")" : ""),
                         selectionArgs);
                 break;
             default:
