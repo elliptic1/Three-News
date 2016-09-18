@@ -1,18 +1,38 @@
 package com.tbse.threenews;
 
 import android.annotation.SuppressLint;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
+import android.content.Context;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider._ID;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class MainNewsActivity extends AppCompatActivity {
+public class MainNewsActivity extends AppCompatActivity
+        implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final String[] PROJECTION = new String[] {
+            _ID, IMG, HEADLINE, LINK, DATE, PRIORITY
+    };
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -23,7 +43,7 @@ public class MainNewsActivity extends AppCompatActivity {
      * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
      * user interaction before hiding the system UI.
      */
-    private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
+    private static final int AUTO_HIDE_DELAY_MILLIS = 2000;
 
     /**
      * Some older devices needs a small delay between UI widget updates
@@ -84,6 +104,13 @@ public class MainNewsActivity extends AppCompatActivity {
     };
 
     @Override
+    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
+        return super.onCreateView(parent, name, context, attrs);
+
+
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -106,6 +133,7 @@ public class MainNewsActivity extends AppCompatActivity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+
     }
 
     @Override
@@ -159,5 +187,20 @@ public class MainNewsActivity extends AppCompatActivity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return new CursorLoader(MainNewsActivity.this, CONTENT_URI, PROJECTION, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
     }
 }
