@@ -1,7 +1,11 @@
 package com.tbse.threenews;
 
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,6 +17,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+
+import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
+
+import java.util.Calendar;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
@@ -78,6 +86,7 @@ public class MainNewsActivity extends AppCompatActivity
         }
     };
     private boolean mVisible;
+
     private final Runnable mHideRunnable = new Runnable() {
         @Override
         public void run() {
@@ -96,8 +105,11 @@ public class MainNewsActivity extends AppCompatActivity
                 delayedHide(AUTO_HIDE_DELAY_MILLIS);
             }
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
-                if (cursor.moveToFirst()) {
+                Log.d("nano", "requesting");
+
+
+                final Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
                     Log.d("nano", cursor.getString(2));
                 } else {
                     Log.e("nano", "nothing in cursor");
@@ -116,7 +128,6 @@ public class MainNewsActivity extends AppCompatActivity
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
-
 
         // Set up the user interaction to manually show or hide the system UI.
         mContentView.setOnClickListener(new View.OnClickListener() {
@@ -139,7 +150,18 @@ public class MainNewsActivity extends AppCompatActivity
         values.put(PRIORITY, "pri");
 
         getContentResolver().insert(CONTENT_URI, values);
+
+        final AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        final Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        final Intent intent = new Intent(this, NewsAlarmManager.class);
+        intent.setAction("com.tbse.threenews.alarm");
+        final PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+                1000 * 60, alarmIntent);
     }
+
+
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {

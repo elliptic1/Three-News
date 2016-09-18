@@ -3,6 +3,7 @@
     package="com.tbse.threenews">
 
     <!-- Required to act as a custom watch face. -->
+    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
 

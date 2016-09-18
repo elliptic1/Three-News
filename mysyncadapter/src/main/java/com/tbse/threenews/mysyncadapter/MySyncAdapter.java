@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.SyncResult;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -27,6 +26,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     public MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
+        Log.d("nano", "MySyncAdapter init");
         contentResolver = context.getContentResolver();
     }
 
@@ -34,35 +34,27 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
-        final String url = getContext().getString(
-                getContext().getResources().getIdentifier(
-                        "apiurl", "string", "com.tbse.threenews.mysyncadapter"));
-        Log.d("nano", "url is " + url);
+        Log.d("nano", "MySyncAdapter onPerformSync");
         final JSONObject requestObject = new JSONObject();
         try {
             requestObject.put("source", "cnn");
-            final String key =
-                    getContext().getString(
-                            getContext().getResources().getIdentifier(
-                                    "newsapikey", "string", "com.tbse.threenews.mysyncadapter"));
-            requestObject.put("apiKey", key);
-            Log.d("nano", "key is " + key);
+            requestObject.put("apiKey", getContext().getString(R.string.newsapikey));
+            requestObject.put("sortBy", "latest");
         } catch (JSONException ignore) {
 
         }
         final JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
-                (Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
-
+                (Request.Method.GET, getContext().getString(R.string.apiurl),
+                        requestObject, new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-                        Toast.makeText(getContext(), "resp", Toast.LENGTH_LONG).show();
+                        Log.d("nano", "got a response: " + response);
                     }
                 }, new Response.ErrorListener() {
 
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        // TODO Auto-generated method stub
-
+                        Log.e("nano", "got an error: " + error.toString());
                     }
                 });
 

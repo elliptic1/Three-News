@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
-    android:contentAuthority="authority"
-    android:accountType="accountType"
+    android:contentAuthority="com.tbse.threenews.provider"
+    android:accountType="type.threenews.tbse.com"
     android:userVisible="true"
     android:supportsUploading="false"
     android:allowParallelSyncs="false"
