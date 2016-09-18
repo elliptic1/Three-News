@@ -107,7 +107,6 @@ public class MainNewsActivity extends AppCompatActivity
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                 Log.d("nano", "requesting");
 
-
                 final Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
                 if (cursor != null && cursor.moveToFirst()) {
                     Log.d("nano", cursor.getString(2));
@@ -160,8 +159,6 @@ public class MainNewsActivity extends AppCompatActivity
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                 1000 * 60, alarmIntent);
     }
-
-
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {

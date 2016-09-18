@@ -35,17 +35,17 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
         Log.d("nano", "MySyncAdapter onPerformSync");
-        final JSONObject requestObject = new JSONObject();
+        final JSONObject paramsObject = new JSONObject();
         try {
-            requestObject.put("source", "cnn");
-            requestObject.put("apiKey", getContext().getString(R.string.newsapikey));
-            requestObject.put("sortBy", "latest");
+            paramsObject.put("source", "cnn");
+            paramsObject.put("apiKey", getContext().getString(R.string.newsapikey));
+            paramsObject.put("sortBy", "latest");
         } catch (JSONException ignore) {
-
+            Log.e("nano", "couldn't make json req obj");
         }
         final JsonObjectRequest jsonObjectRequest = new JsonObjectRequest
                 (Request.Method.GET, getContext().getString(R.string.apiurl),
-                        requestObject, new Response.Listener<JSONObject>() {
+                        paramsObject, new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
                         Log.d("nano", "got a response: " + response);
@@ -54,11 +54,13 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.e("nano", "got an error: " + error.toString());
+                        Log.e("nano", "got an error: " + error);
                     }
                 });
+        jsonObjectRequest.setTag(this);
 
         final RequestQueue queue = Volley.newRequestQueue(getContext());
+        Log.d("nano", "adding request " + jsonObjectRequest.getBody());
         queue.add(jsonObjectRequest);
     }
 
