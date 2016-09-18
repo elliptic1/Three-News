@@ -17,10 +17,12 @@
 package com.tbse.threenews;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -29,8 +31,12 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
@@ -40,11 +46,19 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
+
 /**
  * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
-public class NewsWatchFace extends CanvasWatchFaceService {
+public class NewsWatchFace extends CanvasWatchFaceService implements LoaderManager.LoaderCallbacks<Cursor>{
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
@@ -127,6 +141,15 @@ public class NewsWatchFace extends CanvasWatchFaceService {
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mCalendar = Calendar.getInstance();
+
+            final ContentValues values = new ContentValues();
+            values.put(IMG, "wimg");
+            values.put(HEADLINE, "wheadline");
+            values.put(LINK, "wlink");
+            values.put(DATE, "wdate");
+            values.put(PRIORITY, "wpri");
+
+            getContentResolver().insert(CONTENT_URI, values);
         }
 
         @Override
@@ -231,15 +254,19 @@ public class NewsWatchFace extends CanvasWatchFaceService {
             switch (tapType) {
                 case TAP_TYPE_TOUCH:
                     // The user has started touching the screen.
+                    Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
+                    if (cursor != null && cursor.moveToFirst()) {
+                        Log.d("nano", cursor.getString(2));
+                        Toast.makeText(getApplicationContext(), cursor.getString(2), Toast.LENGTH_SHORT)
+                                .show();
+                    } else {
+                        Log.e("nano", "nothing in cursor");
+                    }
                     break;
                 case TAP_TYPE_TOUCH_CANCEL:
                     // The user has started a different gesture or otherwise cancelled the tap.
                     break;
                 case TAP_TYPE_TAP:
-                    // The user has completed the tap gesture.
-                    // TODO: Add code to handle the tap gesture.
-                    Toast.makeText(getApplicationContext(), R.string.message, Toast.LENGTH_SHORT)
-                            .show();
                     break;
             }
             invalidate();
@@ -297,5 +324,20 @@ public class NewsWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        return new CursorLoader(NewsWatchFace.this, CONTENT_URI, PROJECTION, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
     }
 }

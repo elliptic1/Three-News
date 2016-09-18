@@ -20,7 +20,7 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider._ID;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -28,10 +28,6 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider._ID;
  */
 public class MainNewsActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor> {
-
-    private static final String[] PROJECTION = new String[] {
-            _ID, IMG, HEADLINE, LINK, DATE, PRIORITY
-    };
 
     /**
      * Whether or not the system UI should be auto-hidden after

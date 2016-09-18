@@ -40,6 +40,10 @@ public class MyContentProvider extends ContentProvider {
     public static final String DATE = "DATE";
     public static final String PRIORITY = "PRIORITY";
 
+    public static final String[] PROJECTION = new String[] {
+            _ID, IMG, HEADLINE, LINK, DATE, PRIORITY
+    };
+
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         sUriMatcher.addURI(PROVIDER_NAME, "news", NEWS);
