@@ -1,27 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/story_image"
+        android:src="@drawable/icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleType="centerCrop" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentTop="true"
-        android:text="23123 13131313"/>
-
-   <ImageView
-       android:id="@+id/button"
-       android:src="@drawable/signcheckicon"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"
-       android:scaleType="centerCrop"/>
-
-   <TextView
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"
-       android:layout_centerHorizontal="true"
-       android:layout_alignParentBottom="true"
-       android:text="Article Headline"/>
+        android:text="Filler Text Headline This is a headline. Stuff that happened today"/>
 
 </RelativeLayout>

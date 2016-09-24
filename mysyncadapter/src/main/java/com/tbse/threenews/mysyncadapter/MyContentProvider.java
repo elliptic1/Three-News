@@ -17,6 +17,8 @@ import android.util.Log;
 
 import java.util.HashMap;
 
+import hugo.weaving.DebugLog;
+
 public class MyContentProvider extends ContentProvider {
 
     private static UriMatcher sUriMatcher;
@@ -40,7 +42,7 @@ public class MyContentProvider extends ContentProvider {
     public static final String DATE = "DATE";
     public static final String PRIORITY = "PRIORITY";
 
-    public static final String[] PROJECTION = new String[] {
+    public static final String[] PROJECTION = new String[]{
             _ID, IMG, HEADLINE, LINK, DATE, PRIORITY
     };
 
@@ -54,7 +56,9 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
+    @DebugLog
     public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
+        db = newsDatabaseHelper.getWritableDatabase();
         int count = 0;
         switch (sUriMatcher.match(uri)) {
             case NEWS:
@@ -76,6 +80,7 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
+    @DebugLog
     public String getType(@NonNull Uri uri) {
         switch (sUriMatcher.match(uri)) {
             case NEWS:
@@ -88,6 +93,7 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
+    @DebugLog
     public Uri insert(@NonNull Uri uri, ContentValues values) {
         db = newsDatabaseHelper.getWritableDatabase();
         final long rowid = db.insert(TABLENAME, "", values);
@@ -105,14 +111,17 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
+    @DebugLog
     public boolean onCreate() {
         newsDatabaseHelper = new NewsDatabaseHelper(getContext(), DBNAME, DBVERSION);
         return true;
     }
 
     @Override
+    @DebugLog
     public Cursor query(@NonNull Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
+        db = newsDatabaseHelper.getWritableDatabase();
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(TABLENAME);
         switch (sUriMatcher.match(uri)) {
@@ -135,16 +144,17 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
+    @DebugLog
     public int update(@NonNull Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
+        db = newsDatabaseHelper.getWritableDatabase();
         int count = 0;
         switch (sUriMatcher.match(uri)) {
             case NEWS:
                 count = db.update(TABLENAME, values, selection, selectionArgs);
                 break;
             case NEWS_ID:
-                count = db.update(TABLENAME, values,
-                        _ID + " = " + uri.getPathSegments().get(1)
+                count = db.update(TABLENAME, values, _ID + " = " + uri.getPathSegments().get(1)
                                 + (!TextUtils.isEmpty(selection) ? " AND (" + selection + ")" : ""),
                         selectionArgs);
                 break;

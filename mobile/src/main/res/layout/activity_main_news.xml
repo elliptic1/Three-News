@@ -2,63 +2,71 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000099cc"
+    android:background="#FFFFFF"
     tools:context="com.tbse.threenews.MainNewsActivity">
 
-    <!-- The primary full-screen view. This can be replaced with whatever view
-         is needed to present your content, e.g. VideoView, SurfaceView,
-         TextureView, etc. -->
-    <GridLayout
-        android:orientation="horizontal"
+    <LinearLayout
         android:id="@+id/fullscreen_content"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:keepScreenOn="true"
-        android:rowCount="2"
-        android:columnCount="2"
-        >
-
-        <fragment
-            android:layout_rowSpan="2"
-            android:layout_gravity="fill"
-            android:name="com.tbse.threenews.NewsStoryFragment"
-            tools:layout="@layout/news_story_fragment" />
-        <fragment
-            android:name="com.tbse.threenews.NewsStoryFragment"
-            tools:layout="@layout/news_story_fragment" />
-        <fragment
-            android:name="com.tbse.threenews.NewsStoryFragment"
-            tools:layout="@layout/news_story_fragment" />
-
-        </GridLayout>
-
-    <!-- This FrameLayout insets its children based on system windows using
-         android:fitsSystemWindows. -->
-    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fitsSystemWindows="true">
+        android:baselineAligned="false"
+        android:keepScreenOn="true"
+        android:weightSum="1000"
+        android:orientation="horizontal">
+
+        <fragment
+            android:id="@+id/article_main"
+            android:name="com.tbse.threenews.NewsStoryFragment"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="618"
+            tools:layout="@layout/news_story_fragment" />
 
         <LinearLayout
-            android:id="@+id/fullscreen_content_controls"
-            style="?metaButtonBarStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center_horizontal"
-            android:background="@color/black_overlay"
-            android:orientation="horizontal"
-            tools:ignore="UselessParent">
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="382"
+            android:orientation="vertical"
+            android:weightSum="2">
 
-            <Button
-                android:id="@+id/dummy_button"
-                style="?metaButtonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+            <fragment
+                android:id="@+id/article_top_right"
+                android:name="com.tbse.threenews.NewsStoryFragment"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:text="@string/dummy_button" />
+                tools:layout="@layout/news_story_fragment" />
+
+            <fragment
+                android:id="@+id/main_bot_right"
+                android:name="com.tbse.threenews.NewsStoryFragment"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                tools:layout="@layout/news_story_fragment" />
 
         </LinearLayout>
-    </FrameLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/fullscreen_content_controls"
+        style="?metaButtonBarStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:background="@color/black_overlay"
+        android:orientation="horizontal"
+        tools:ignore="UselessParent">
+
+        <Button
+            android:id="@+id/dummy_button"
+            style="?metaButtonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/refresh_button" />
+
+    </LinearLayout>
 
 </FrameLayout>

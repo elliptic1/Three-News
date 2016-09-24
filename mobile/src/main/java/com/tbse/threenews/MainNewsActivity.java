@@ -23,6 +23,8 @@ import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
 
 import java.util.Calendar;
 
+import hugo.weaving.DebugLog;
+
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
@@ -106,6 +108,9 @@ public class MainNewsActivity extends AppCompatActivity
                 final Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
                 if (cursor != null && cursor.moveToFirst()) {
                     Log.d("nano", cursor.getString(2));
+                    while (cursor.moveToNext()) {
+                        Log.d("nano", cursor.getString(2));
+                    }
                 } else {
                     Log.e("nano", "nothing in cursor");
                 }
@@ -115,6 +120,7 @@ public class MainNewsActivity extends AppCompatActivity
     };
 
     @Override
+    @DebugLog
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -157,6 +163,7 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @Override
+    @DebugLog
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
 
@@ -167,6 +174,7 @@ public class MainNewsActivity extends AppCompatActivity
 
     }
 
+    @DebugLog
     private void toggle() {
         if (mVisible) {
             hide();
@@ -175,6 +183,7 @@ public class MainNewsActivity extends AppCompatActivity
         }
     }
 
+    @DebugLog
     private void hide() {
         // Hide UI first
         final ActionBar actionBar = getSupportActionBar();
@@ -190,6 +199,7 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @SuppressLint("InlinedApi")
+    @DebugLog
     private void show() {
         // Show the system bar
         mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -205,22 +215,26 @@ public class MainNewsActivity extends AppCompatActivity
      * Schedules a call to hide() in [delay] milliseconds, canceling any
      * previously scheduled calls.
      */
+    @DebugLog
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
     }
 
     @Override
+    @DebugLog
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         return new CursorLoader(MainNewsActivity.this, CONTENT_URI, PROJECTION, null, null, null);
     }
 
     @Override
+    @DebugLog
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 
     }
 
     @Override
+    @DebugLog
     public void onLoaderReset(Loader<Cursor> loader) {
 
     }

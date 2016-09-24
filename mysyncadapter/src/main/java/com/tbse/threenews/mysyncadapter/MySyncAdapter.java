@@ -27,6 +27,7 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
+import hugo.weaving.DebugLog;
 
 
 public class MySyncAdapter extends AbstractThreadedSyncAdapter {
@@ -34,6 +35,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     private ContentResolver contentResolver;
     private String apiKey;
 
+    @DebugLog
     public MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
         Log.d("nano", "MySyncAdapter init");
@@ -41,6 +43,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         apiKey = getContext().getString(R.string.newsapikey);
     }
 
+    @DebugLog
     @Override
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
@@ -56,7 +59,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         } catch (JSONException ignore) {
             Log.e("nano", "couldn't make json req obj");
         }
-        StringRequest stringRequest = new StringRequest(Request.Method.GET,
+        final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                 getContext().getString(R.string.apiurl)
                 + "?source=cnn&apiKey="
                 + getContext().getString(R.string.newsapikey)
