@@ -111,6 +111,7 @@ public class MainNewsActivity extends AppCompatActivity
                     while (cursor.moveToNext()) {
                         Log.d("nano", cursor.getString(2));
                     }
+                    cursor.close();
                 } else {
                     Log.e("nano", "nothing in cursor");
                 }
@@ -171,6 +172,14 @@ public class MainNewsActivity extends AppCompatActivity
         // created, to briefly hint to the user that UI controls
         // are available.
         delayedHide(100);
+
+        NewsStoryFragment article_main = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
+        NewsStoryFragment article_top_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
+        NewsStoryFragment article_bot_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
+
+        article_main.setStoryId(0);
+        article_top_right.setStoryId(1);
+        article_bot_right.setStoryId(2);
 
     }
 

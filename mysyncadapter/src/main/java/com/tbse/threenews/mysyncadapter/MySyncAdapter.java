@@ -21,13 +21,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import hugo.weaving.DebugLog;
+
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
-import hugo.weaving.DebugLog;
 
 
 public class MySyncAdapter extends AbstractThreadedSyncAdapter {
@@ -61,44 +62,10 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         }
         final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                 getContext().getString(R.string.apiurl)
-                + "?source=cnn&apiKey="
-                + getContext().getString(R.string.newsapikey)
-                + "&sortBy=top",
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        Log.d("nano", "got a response: " + response);
-                        try {
-                            final JSONObject respJSON = new JSONObject(response);
-                            Log.d("nano", "got a json: " + respJSON);
-                            final JSONArray array = respJSON.getJSONArray("articles");
-                            for (int i=0; i<array.length(); i++) {
-                                final JSONObject jsonArticle = array.getJSONObject(i);
-                                Log.d("nano", "title: " + jsonArticle.getString("title"));
-                                Log.d("nano", " - desc: " + jsonArticle.getString("description"));
-                                Log.d("nano", " - url: " + jsonArticle.getString("url"));
-                                Log.d("nano", " - imageUrl: " + jsonArticle.getString("urlToImage"));
-                                Log.d("nano", " - pubAt: " + jsonArticle.getString("publishedAt"));
-                                final ContentValues contentValues = new ContentValues();
-                                contentValues.put(IMG, jsonArticle.getString("urlToImage"));
-                                contentValues.put(HEADLINE, jsonArticle.getString("title"));
-                                contentValues.put(LINK, jsonArticle.getString("url"));
-                                contentValues.put(DATE, jsonArticle.getString("publishedAt"));
-                                contentValues.put(PRIORITY, 1);
-                                contentResolver.insert(CONTENT_URI, contentValues);
-                            }
-                            Log.d("nano", " articles count " + array.length());
-                        } catch (JSONException e) {
-                            Log.e("nano", "json error: " + e);
-                        }
-                    }
-                }, new Response.ErrorListener() {
-
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e("nano", "got an error: " + error);
-            }
-        });
+                        + "?source=cnn&apiKey="
+                        + getContext().getString(R.string.newsapikey)
+                        + "&sortBy=top",
+                new MyResponseListener(), new MyErrorListener());
         stringRequest.setTag(this);
 
         final RequestQueue queue = Volley.newRequestQueue(getContext());
@@ -109,5 +76,35 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     @Override
     public void onSyncCanceled() {
         super.onSyncCanceled();
+    }
+
+    private class MyResponseListener implements Response.Listener<String> {
+        @Override
+        public void onResponse(String response) {
+            try {
+                final JSONObject respJSON = new JSONObject(response);
+                final JSONArray array = respJSON.getJSONArray("articles");
+                contentResolver.delete(CONTENT_URI, null, null);
+                for (int i = 0; i < Math.max(array.length(), 3); i++) {
+                    final JSONObject jsonArticle = array.getJSONObject(i);
+                    final ContentValues contentValues = new ContentValues();
+                    contentValues.put(IMG, jsonArticle.getString("urlToImage"));
+                    contentValues.put(HEADLINE, jsonArticle.getString("title"));
+                    contentValues.put(LINK, jsonArticle.getString("url"));
+                    contentValues.put(DATE, jsonArticle.getString("publishedAt"));
+                    contentValues.put(PRIORITY, 1);
+                    contentResolver.insert(CONTENT_URI, contentValues);
+                }
+            } catch (JSONException e) {
+                Log.e("nano", "json error: " + e);
+            }
+        }
+    }
+
+    private class MyErrorListener implements Response.ErrorListener {
+        @Override
+        public void onErrorResponse(VolleyError error) {
+            Log.e("nano", "got an error: " + error);
+        }
     }
 }
