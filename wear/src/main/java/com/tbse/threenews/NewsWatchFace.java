@@ -17,11 +17,11 @@
 package com.tbse.threenews;
 
 import android.content.BroadcastReceiver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -30,6 +30,7 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -47,11 +48,6 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
 /**
@@ -131,7 +127,7 @@ public class NewsWatchFace extends CanvasWatchFaceService implements LoaderManag
                     .setShowSystemUiTime(false)
                     .setAcceptsTapEvents(true)
                     .build());
-            Resources resources = NewsWatchFace.this.getResources();
+            final Resources resources = NewsWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
 
             mBackgroundPaint = new Paint();
@@ -142,14 +138,14 @@ public class NewsWatchFace extends CanvasWatchFaceService implements LoaderManag
 
             mCalendar = Calendar.getInstance();
 
-            final ContentValues values = new ContentValues();
-            values.put(IMG, "wimg");
-            values.put(HEADLINE, "wheadline");
-            values.put(LINK, "wlink");
-            values.put(DATE, "wdate");
-            values.put(PRIORITY, "wpri");
-
-            getContentResolver().insert(CONTENT_URI, values);
+            getContentResolver().registerContentObserver(CONTENT_URI, false,
+                    new ContentObserver(new Handler(Looper.getMainLooper())) {
+                        @Override
+                        public void onChange(boolean selfChange) {
+                            super.onChange(selfChange);
+                            Log.d("nano", "watch content observer changed");
+                        }
+                    });
         }
 
         @Override

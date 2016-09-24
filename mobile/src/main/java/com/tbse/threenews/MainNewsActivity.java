@@ -3,12 +3,13 @@ package com.tbse.threenews;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
@@ -23,11 +24,6 @@ import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
 import java.util.Calendar;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
 /**
@@ -141,15 +137,6 @@ public class MainNewsActivity extends AppCompatActivity
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
 
-        final ContentValues values = new ContentValues();
-        values.put(IMG, "img");
-        values.put(HEADLINE, "headline");
-        values.put(LINK, "link");
-        values.put(DATE, "date");
-        values.put(PRIORITY, "pri");
-
-        getContentResolver().insert(CONTENT_URI, values);
-
         final AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         final Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(System.currentTimeMillis());
@@ -158,6 +145,15 @@ public class MainNewsActivity extends AppCompatActivity
         final PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                 1000 * 60, alarmIntent);
+
+        getContentResolver().registerContentObserver(CONTENT_URI, false,
+                new ContentObserver(new Handler(Looper.getMainLooper())) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        super.onChange(selfChange);
+                        Log.d("nano", "observer change");
+                    }
+                });
     }
 
     @Override

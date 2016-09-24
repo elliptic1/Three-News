@@ -23,7 +23,7 @@ public class MyContentProvider extends ContentProvider {
     private NewsDatabaseHelper newsDatabaseHelper;
     private static final String DBNAME = "newsdb";
     private static final String TABLENAME = "news";
-    private static final int DBVERSION = 1;
+    private static final int DBVERSION = 2;
     private SQLiteDatabase db;
     private static final String PROVIDER_NAME = "com.tbse.threenews.provider";
     private static final String URL = "content://" + PROVIDER_NAME + "/news";
@@ -163,7 +163,7 @@ public class MyContentProvider extends ContentProvider {
                     " " + IMG + " TEXT, " +
                     " " + HEADLINE + " TEXT, " +
                     " " + LINK + " TEXT, " +
-                    " " + DATE + " INTEGER, " +
+                    " " + DATE + " TEXT, " +
                     " " + PRIORITY + " INTEGER " +
                     " ); ";
     private static final String SQL_DROP_MAIN = "DROP TABLE IF EXISTS " + TABLENAME + ";";
