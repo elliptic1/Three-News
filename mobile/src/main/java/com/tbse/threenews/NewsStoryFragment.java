@@ -92,7 +92,6 @@ public class NewsStoryFragment extends Fragment {
             super.onChange(selfChange);
             final Cursor c = contentResolver.query(
                     CONTENT_URI, PROJECTION, null, null, DATE + " DESC");
-            Log.d("nano", "onChange " + " move to first " + c.moveToFirst() + " ready? " + isStoryReady);
             if (c != null && c.moveToPosition(story_id) && !isStoryReady) {
                 Log.d("nano", "story " + story_id + " ready");
                 isStoryReady = true;
@@ -100,7 +99,6 @@ public class NewsStoryFragment extends Fragment {
                 Log.d("nano", "story " + story_id + " not ready");
             }
             c.close();
-
         }
     }
 
@@ -111,7 +109,6 @@ public class NewsStoryFragment extends Fragment {
             this.view = view;
         }
 
-        @Override
         public void run() {
             Log.d("nano", "checking for story " + story_id + " ready? " + isStoryReady);
             if (getContext() != null && isStoryReady) {
@@ -145,7 +142,6 @@ public class NewsStoryFragment extends Fragment {
                             .into(storyImage);
 
                     headlineTV.setText(sourceToName.get(source) + ": " + headline);
-
                 } else {
                     isStoryReady = false;
                     Log.d("nano", "story " + story_id + " setting not ready");
