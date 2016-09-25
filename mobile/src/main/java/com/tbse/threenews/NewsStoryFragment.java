@@ -35,7 +35,6 @@ public class NewsStoryFragment extends Fragment {
     private Handler contentObserverHandler;
     private ImageView storyImage;
     private TextView headlineTV;
-    private View storyBox;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,7 +52,6 @@ public class NewsStoryFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         storyImage = (ImageView) view.findViewById(R.id.story_image);
         headlineTV = (TextView) view.findViewById(R.id.headline);
-        storyBox = view.findViewById(R.id.story_box);
         contentResolver.registerContentObserver(CONTENT_URI, false,
                 new MyContentObserver(view, contentObserverHandler));
     }

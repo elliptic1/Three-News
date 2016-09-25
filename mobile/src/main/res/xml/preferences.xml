@@ -6,13 +6,53 @@
         android:title="@string/news_source">
 
         <android.support.v7.preference.CheckBoxPreference
-            android:key="checkbox_preference"
+            android:key="associated-press"
+            android:title="@string/associatedpress"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="cnn"
             android:title="@string/cnn"
             />
 
         <android.support.v7.preference.CheckBoxPreference
-            android:key="checkbox_preference"
+            android:key="google-news"
+            android:title="@string/googlenews"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="hacker-news"
+            android:title="@string/hackernews"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="the-new-york-times"
+            android:title="@string/nyt"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="reuters"
+            android:title="@string/reuters"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="techcrunch"
             android:title="@string/techcrunch"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="time"
+            android:title="@string/time"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="usa-today"
+            android:title="@string/usatoday"
+            />
+
+        <android.support.v7.preference.CheckBoxPreference
+            android:key="the-washington-post"
+            android:title="@string/washingtonpost"
             />
 
     </android.support.v7.preference.PreferenceCategory>

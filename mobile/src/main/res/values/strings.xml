@@ -2,8 +2,16 @@
     <string name="app_name">Three News</string>
     <string name="refresh_button">Refresh News</string>
     <string name="settings_button">Settings</string>
-    <string name="news_source">News Source</string>
+    <string name="news_source">Select News Sources</string>
 
     <string name="cnn">CNN</string>
     <string name="techcrunch">TechCrunch</string>
+    <string name="associatedpress">AP</string>
+    <string name="googlenews">Google News</string>
+    <string name="hackernews">Hacker News</string>
+    <string name="reuters">Reuters</string>
+    <string name="nyt">The New York Times</string>
+    <string name="washingtonpost">The Washington Post</string>
+    <string name="usatoday">USA Today</string>
+    <string name="time">Time</string>
 </resources>
