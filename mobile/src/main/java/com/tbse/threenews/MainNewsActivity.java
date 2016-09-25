@@ -7,6 +7,7 @@ import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.ContentObserver;
@@ -19,6 +20,8 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,19 +42,10 @@ import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.AUTHORITY;
  * status bar and navigation/system bar) with user interaction.
  */
 public class MainNewsActivity extends AppCompatActivity
-        implements LoaderManager.LoaderCallbacks<Cursor> {
+        implements LoaderManager.LoaderCallbacks<Cursor>,
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
-    /**
-     * Whether or not the system UI should be auto-hidden after
-     * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
-     */
-    private static final boolean AUTO_HIDE = true;
-
-    /**
-     * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
-     * user interaction before hiding the system UI.
-     */
-    private static final int AUTO_HIDE_DELAY_MILLIS = 2000;
+    private static final int AUTO_HIDE_DELAY_MILLIS = 1000;
 
     /**
      * Some older devices needs a small delay between UI widget updates
@@ -105,9 +99,7 @@ public class MainNewsActivity extends AppCompatActivity
     private final View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (AUTO_HIDE) {
-                delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            }
+            delayedHide(AUTO_HIDE_DELAY_MILLIS);
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                 dialog.show();
                 ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
@@ -120,17 +112,17 @@ public class MainNewsActivity extends AppCompatActivity
     private final View.OnTouchListener mSettingsDelayHideTouchListener = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (AUTO_HIDE) {
-                delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            }
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                // TODO: launch settings fragment
+                getSupportFragmentManager().beginTransaction()
+                        .replace(android.R.id.content, settingsFragment)
+                        .commit();
             }
             return false;
         }
     };
 
     private ProgressDialog dialog;
+    private SettingsFragment settingsFragment;
 
     @Override
     @DebugLog
@@ -138,6 +130,8 @@ public class MainNewsActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main_news);
+
+        settingsFragment = new SettingsFragment();
 
         dialog = new ProgressDialog(this);
         dialog.setMessage("Getting the latest news...");
@@ -169,6 +163,7 @@ public class MainNewsActivity extends AppCompatActivity
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.refresh_button).setOnTouchListener(mDelayHideTouchListener);
+        findViewById(R.id.settings_button).setOnTouchListener(mSettingsDelayHideTouchListener);
 
         // Set margin for right side of settings button
         final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)
@@ -284,4 +279,20 @@ public class MainNewsActivity extends AppCompatActivity
         return 0;
     }
 
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.d("nano", "shared pref changed " + key);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (settingsFragment.isAdded()) {
+                getSupportFragmentManager().beginTransaction().remove(settingsFragment).commit();
+                delayedHide(AUTO_HIDE_DELAY_MILLIS);
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
 }

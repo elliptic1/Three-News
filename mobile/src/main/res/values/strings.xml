@@ -2,4 +2,8 @@
     <string name="app_name">Three News</string>
     <string name="refresh_button">Refresh News</string>
     <string name="settings_button">Settings</string>
+    <string name="news_source">News Source</string>
+
+    <string name="cnn">CNN</string>
+    <string name="techcrunch">TechCrunch</string>
 </resources>

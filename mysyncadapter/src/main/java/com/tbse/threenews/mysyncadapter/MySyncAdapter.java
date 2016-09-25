@@ -57,7 +57,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                               SyncResult syncResult) {
         final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                 getContext().getString(R.string.apiurl)
-                        + "?source=techcrunch&apiKey="
+                        + "?source=cnn&apiKey="
                         + getContext().getString(R.string.newsapikey)
                         + "&sortBy=top",
                 new MyResponseListener(), new MyErrorListener());
@@ -80,7 +80,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray("articles");
                 contentResolver.delete(CONTENT_URI, null, null);
-                ArrayList<String> titles = new ArrayList<>();
+                final ArrayList<String> titles = new ArrayList<>();
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
                     final String title = jsonArticle.getString("title");

@@ -68,8 +68,9 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="4"
+            android:background="@color/darkest_alice"
             android:text="@string/refresh_button"
-            android:textColor="@color/darkruby"
+            android:textColor="#FFFFFF"
             android:textSize="24sp" />
 
         <Button
@@ -79,9 +80,9 @@
             android:layout_height="match_parent"
             android:layout_marginRight="48dp"
             android:layout_weight="1"
-            android:background="@color/trans_silver"
+            android:background="#FFFFFF"
             android:text="@string/settings_button"
-            android:textColor="@color/peter_river"
+            android:textColor="@color/darkest_alice"
             android:textSize="20sp"
             tools:ignore="RtlHardcoded" />
 
