@@ -25,7 +25,7 @@ public class MyContentProvider extends ContentProvider {
     private NewsDatabaseHelper newsDatabaseHelper;
     private static final String DBNAME = "newsdb";
     private static final String TABLENAME = "news";
-    private static final int DBVERSION = 3;
+    private static final int DBVERSION = 4;
     private SQLiteDatabase db;
     private static final String PROVIDER_NAME = "com.tbse.threenews.provider";
     private static final String URL = "content://" + PROVIDER_NAME + "/news";
@@ -37,12 +37,13 @@ public class MyContentProvider extends ContentProvider {
 
     public static final String _ID = "_ID";
     public static final String IMG = "IMG";
+    public static final String SOURCE = "SOURCE";
     public static final String HEADLINE = "HEADLINE";
     public static final String LINK = "LINK";
     public static final String DATE = "DATE";
 
     public static final String[] PROJECTION = new String[]{
-            _ID, IMG, HEADLINE, LINK, DATE
+            _ID, IMG, SOURCE, HEADLINE, LINK, DATE
     };
 
     static {
@@ -170,6 +171,7 @@ public class MyContentProvider extends ContentProvider {
             "CREATE TABLE " + TABLENAME +
                     " ( " + _ID + " INTEGER PRIMARY KEY, " +
                     " " + IMG + " TEXT, " +
+                    " " + SOURCE + " TEXT, " +
                     " " + HEADLINE + " TEXT, " +
                     " " + LINK + " TEXT, " +
                     " " + DATE + " INTEGER " +

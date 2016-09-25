@@ -24,6 +24,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import hugo.weaving.DebugLog;
 
@@ -33,6 +34,7 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.SOURCE;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT_TYPE;
 
@@ -40,12 +42,19 @@ import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT_TYPE;
 public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private ContentResolver contentResolver;
+    public static HashMap<String, String> sourceToName;
 
     @DebugLog
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
         Log.d("nano", "MySyncAdapter init");
         contentResolver = context.getContentResolver();
+        final String[] sources = getContext().getResources().getStringArray(R.array.newssources);
+        final String[] sourcesnames = getContext().getResources().getStringArray(R.array.newssourcesnames);
+        sourceToName = new HashMap<>();
+        for (int i = 0; i < sources.length; i++) {
+            sourceToName.put(sources[i], sourcesnames[i]);
+        }
     }
 
     @DebugLog
@@ -53,16 +62,17 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
-        final StringRequest stringRequest = new StringRequest(Request.Method.GET,
-                getContext().getString(R.string.apiurl)
-                        + "?source=cnn&apiKey="
-                        + getContext().getString(R.string.newsapikey)
-                        + "&sortBy=top",
-                new MyResponseListener(), new MyErrorListener());
-        stringRequest.setTag(this);
+        for (String source : sourceToName.keySet()) {
+            final StringRequest stringRequest = new StringRequest(Request.Method.GET,
+                    getContext().getString(R.string.apiurl)
+                            + "?source=" + source + "&apiKey="
+                            + getContext().getString(R.string.newsapikey),
+                    new MyResponseListener(source), new MyErrorListener());
+            stringRequest.setTag(this);
 
-        final RequestQueue queue = Volley.newRequestQueue(getContext());
-        queue.add(stringRequest);
+            final RequestQueue queue = Volley.newRequestQueue(getContext());
+            queue.add(stringRequest);
+        }
     }
 
     @Override
@@ -71,6 +81,12 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private class MyResponseListener implements Response.Listener<String> {
+        private String source;
+
+        MyResponseListener(String source) {
+            this.source = source;
+        }
+
         @Override
         @DebugLog
         public void onResponse(String response) {
@@ -95,6 +111,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     final ContentValues contentValues = new ContentValues();
                     contentValues.put(IMG, jsonArticle.getString("urlToImage"));
                     contentValues.put(HEADLINE, title);
+                    contentValues.put(SOURCE, source);
                     contentValues.put(LINK, jsonArticle.getString("url"));
                     final DateTime dateTime = new DateTime(jsonArticle.get("publishedAt"));
                     contentValues.put(DATE, dateTime.getMillis() / 1000);
@@ -117,7 +134,8 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     @DebugLog
     public static Account createSyncAccount(Context context) {
         final Account newAccount = new Account(ACCOUNT, ACCOUNT_TYPE);
-        final AccountManager accountManager = (AccountManager) context.getSystemService(ACCOUNT_SERVICE);
+        final AccountManager accountManager
+                = (AccountManager) context.getSystemService(ACCOUNT_SERVICE);
         accountManager.addAccountExplicitly(newAccount, null, null);
         return newAccount;
     }

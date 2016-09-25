@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="newssources">
+        <item>associated-press</item>
+        <item>cnn</item>
+        <item>google-news</item>
+        <item>hacker-news</item>
+        <item>the-new-york-times</item>
+        <item>reuters</item>
+        <item>techcrunch</item>
+        <item>time</item>
+        <item>the-washington-post</item>
+    </string-array>
+</resources>

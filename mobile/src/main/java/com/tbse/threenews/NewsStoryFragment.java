@@ -18,12 +18,15 @@ import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MyTransform;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.SOURCE;
+import static com.tbse.threenews.mysyncadapter.MySyncAdapter.sourceToName;
 
 /**
- * Created by smitt345 on 9/23/16.
+ * Created by smitt345 on 9/23/16 for the Android Nanodegree capstone project.
  */
 
 public class NewsStoryFragment extends Fragment {
@@ -84,9 +87,11 @@ public class NewsStoryFragment extends Fragment {
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            final Cursor c = contentResolver.query(CONTENT_URI, PROJECTION, null, null, null);
+            final Cursor c = contentResolver.query(
+                    CONTENT_URI, PROJECTION, null, null, DATE + " DESC");
             if (c != null && c.moveToPosition(story_id)) {
                 final String img = c.getString(c.getColumnIndex(IMG));
+                final String source = c.getString(c.getColumnIndex(SOURCE));
                 final String headline = c.getString(c.getColumnIndex(HEADLINE));
                 c.close();
 
@@ -105,7 +110,7 @@ public class NewsStoryFragment extends Fragment {
                         .transform(myTransform)
                         .into(storyImage);
 
-                headlineTV.setText(headline);
+                headlineTV.setText(sourceToName.get(source) + ": " + headline);
 
             }
         }
