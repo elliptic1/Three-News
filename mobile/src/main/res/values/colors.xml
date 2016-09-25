@@ -9,4 +9,8 @@
     <color name="darkruby">#9A2617</color>
     <color name="clouds">#ecf0f1</color>
     <color name="asbestos">#7f8c8d</color>
+    <color name="silver">#bdc3c7</color>
+    <color name="trans_silver">#77bdc3c7</color>
+    <color name="midnight_blue">#2c3e50</color>
+    <color name="peter_river">#3498db</color>
 </resources>

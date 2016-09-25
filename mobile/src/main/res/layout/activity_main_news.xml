@@ -59,17 +59,31 @@
         android:layout_gravity="bottom|center_horizontal"
         android:background="@color/black_overlay"
         android:orientation="horizontal"
+        android:weightSum="5"
         tools:ignore="UselessParent">
 
         <Button
-            android:id="@+id/dummy_button"
+            android:id="@+id/refresh_button"
             style="?metaButtonBarButtonStyle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:layout_weight="4"
+            android:text="@string/refresh_button"
             android:textColor="@color/darkruby"
-            android:textSize="24sp"
-            android:text="@string/refresh_button" />
+            android:textSize="24sp" />
+
+        <Button
+            android:id="@+id/settings_button"
+            style="?metaButtonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginRight="48dp"
+            android:layout_weight="1"
+            android:background="@color/trans_silver"
+            android:text="@string/settings_button"
+            android:textColor="@color/peter_river"
+            android:textSize="20sp"
+            tools:ignore="RtlHardcoded" />
 
     </LinearLayout>
 

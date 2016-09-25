@@ -3,7 +3,6 @@ package com.tbse.threenews;
 import android.content.Context;
 import android.support.multidex.MultiDexApplication;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowManager;
 
 /**
@@ -12,8 +11,8 @@ import android.view.WindowManager;
 
 public class ThreeNewsApplication extends MultiDexApplication {
 
-    private int deviceWidth = 100;
-    private int deviceHeight = 100;
+    private int deviceWidth;
+    private int deviceHeight;
 
     @Override
     public void onCreate() {
@@ -25,9 +24,6 @@ public class ThreeNewsApplication extends MultiDexApplication {
 
         deviceWidth = metrics.widthPixels;
         deviceHeight = metrics.heightPixels;
-
-        Log.d("nano", "width = " + metrics.widthPixels);
-        Log.d("nano", "height = " + metrics.heightPixels);
 
     }
 

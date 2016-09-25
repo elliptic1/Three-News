@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Three News</string>
     <string name="refresh_button">Refresh News</string>
+    <string name="settings_button">Settings</string>
 </resources>

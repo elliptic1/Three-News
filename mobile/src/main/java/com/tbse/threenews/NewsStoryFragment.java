@@ -8,17 +8,15 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
+import com.tbse.threenews.mysyncadapter.MyTransform;
 
-import static com.tbse.threenews.R.id.story_box;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
@@ -30,13 +28,13 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
 public class NewsStoryFragment extends Fragment {
 
-    private RelativeLayout storyBox;
-    private ImageView storyImage;
-    private Handler contentObserverHandler;
-    private ContentResolver contentResolver;
-    private int story_id = 0;
     private int deviceWidth;
     private int deviceHeight;
+    private int story_id = 0;
+    private ContentResolver contentResolver;
+    private Handler contentObserverHandler;
+    private ImageView storyImage;
+    private TextView headlineTV;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,7 +51,7 @@ public class NewsStoryFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         storyImage = (ImageView) view.findViewById(R.id.story_image);
-        storyBox = (RelativeLayout) view.findViewById(story_box);
+        headlineTV = (TextView) view.findViewById(R.id.headline);
         contentResolver.registerContentObserver(CONTENT_URI, false,
                 new MyContentObserver(view, contentObserverHandler));
     }
@@ -66,7 +64,6 @@ public class NewsStoryFragment extends Fragment {
     }
 
     public void setStoryId(int a) {
-        Log.d("nano", "setting story id to " + a);
         story_id = a;
     }
 
@@ -89,19 +86,25 @@ public class NewsStoryFragment extends Fragment {
             super.onChange(selfChange);
             final Cursor c = contentResolver.query(CONTENT_URI, PROJECTION, null, null, null);
             if (c != null && c.moveToPosition(story_id)) {
-                final String headline = c.getString(c.getColumnIndex(HEADLINE));
                 final String img = c.getString(c.getColumnIndex(IMG));
+                final String headline = c.getString(c.getColumnIndex(HEADLINE));
                 c.close();
 
                 storyImage.setContentDescription(headline);
 
-                Picasso.with(view.getContext()).load(img)
+                final MyTransform myTransform;
+                if (story_id == 0) {
+                    myTransform = new MyTransform(deviceWidth * 0.618f, 1.0f * deviceHeight);
+                } else {
+                    myTransform = new MyTransform(deviceWidth * 0.382f, deviceHeight / 2.0f);
+                }
+
+                Picasso.with(view.getContext())
+                        .load(img)
                         .placeholder(R.drawable.loading)
-                        .resize(deviceWidth/2, deviceHeight)
-                        .centerCrop()
+                        .transform(myTransform)
                         .into(storyImage);
 
-                final TextView headlineTV = (TextView) view.findViewById(R.id.headline);
                 headlineTV.setText(headline);
             }
         }

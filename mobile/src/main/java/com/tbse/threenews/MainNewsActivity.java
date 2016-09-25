@@ -7,6 +7,8 @@ import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -19,6 +21,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 
 import com.tbse.threenews.mysyncadapter.MySyncAdapter;
 import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
@@ -114,6 +117,19 @@ public class MainNewsActivity extends AppCompatActivity
         }
     };
 
+    private final View.OnTouchListener mSettingsDelayHideTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            if (AUTO_HIDE) {
+                delayedHide(AUTO_HIDE_DELAY_MILLIS);
+            }
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                // TODO: launch settings fragment
+            }
+            return false;
+        }
+    };
+
     private ProgressDialog dialog;
 
     @Override
@@ -152,7 +168,14 @@ public class MainNewsActivity extends AppCompatActivity
         // Upon interacting with UI controls, delay any scheduled hide()
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
-        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+        findViewById(R.id.refresh_button).setOnTouchListener(mDelayHideTouchListener);
+
+        // Set margin for right side of settings button
+        final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)
+                findViewById(R.id.settings_button).getLayoutParams();
+        layoutParams.setMargins(0, 0, getNavigationBarHeight(
+                this, getResources().getConfiguration().orientation), 0);
+        //
 
         final AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         final Calendar calendar = Calendar.getInstance();
@@ -160,7 +183,7 @@ public class MainNewsActivity extends AppCompatActivity
         final Intent intent = new Intent(this, NewsAlarmManager.class);
         intent.setAction("com.tbse.threenews.alarm");
         final PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+        alarmManager.setRepeating(AlarmManager.RTC, calendar.getTimeInMillis(),
                 1000 * 60, alarmIntent);
     }
 
@@ -174,9 +197,12 @@ public class MainNewsActivity extends AppCompatActivity
         // are available.
         delayedHide(100);
 
-        final NewsStoryFragment article_main = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
-        final NewsStoryFragment article_top_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
-        final NewsStoryFragment article_bot_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
+        final NewsStoryFragment article_main =
+                (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
+        final NewsStoryFragment article_top_right =
+                (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
+        final NewsStoryFragment article_bot_right =
+                (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
 
         article_main.setStoryId(0);
         article_top_right.setStoryId(1);
@@ -246,4 +272,16 @@ public class MainNewsActivity extends AppCompatActivity
     public void onLoaderReset(Loader<Cursor> loader) {
 
     }
+
+    private int getNavigationBarHeight(Context context, int orientation) {
+        final Resources resources = context.getResources();
+
+        final int id = resources.getIdentifier(
+                orientation == Configuration.ORIENTATION_PORTRAIT ? "navigation_bar_height" : "navigation_bar_height_landscape", "dimen", "android");
+        if (id > 0) {
+            return resources.getDimensionPixelSize(id);
+        }
+        return 0;
+    }
+
 }
