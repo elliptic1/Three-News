@@ -55,27 +55,15 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
-        Log.d("nano", "MySyncAdapter onPerformSync");
-        final JSONObject paramsObject = new JSONObject();
-        try {
-            paramsObject.put("source", "techcrunch");
-            paramsObject.put("apiKey", apiKey);
-            paramsObject.put("sortBy", "latest");
-
-            Log.d("nano", "params is " + paramsObject);
-        } catch (JSONException ignore) {
-            Log.e("nano", "couldn't make json req obj");
-        }
         final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                 getContext().getString(R.string.apiurl)
-                        + "?source=cnn&apiKey="
+                        + "?source=techcrunch&apiKey="
                         + getContext().getString(R.string.newsapikey)
                         + "&sortBy=top",
                 new MyResponseListener(), new MyErrorListener());
         stringRequest.setTag(this);
 
         final RequestQueue queue = Volley.newRequestQueue(getContext());
-        Log.d("nano", "adding request " + stringRequest);
         queue.add(stringRequest);
     }
 
@@ -129,16 +117,13 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     public static Account createSyncAccount(Context context) {
         final Account newAccount = new Account(ACCOUNT, ACCOUNT_TYPE);
         final AccountManager accountManager = (AccountManager) context.getSystemService(ACCOUNT_SERVICE);
-        if (accountManager.addAccountExplicitly(newAccount, null, null)) {
-            Log.d("nano", "account added");
-        }
+        accountManager.addAccountExplicitly(newAccount, null, null);
         return newAccount;
     }
 
     public static Bundle getSettingsBundle() {
         final Bundle settingsBundle = new Bundle();
-        settingsBundle.putBoolean(
-                ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         return settingsBundle;
     }
 
