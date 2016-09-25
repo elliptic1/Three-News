@@ -25,7 +25,7 @@ public class MyContentProvider extends ContentProvider {
     private NewsDatabaseHelper newsDatabaseHelper;
     private static final String DBNAME = "newsdb";
     private static final String TABLENAME = "news";
-    private static final int DBVERSION = 2;
+    private static final int DBVERSION = 3;
     private SQLiteDatabase db;
     private static final String PROVIDER_NAME = "com.tbse.threenews.provider";
     private static final String URL = "content://" + PROVIDER_NAME + "/news";
@@ -40,10 +40,9 @@ public class MyContentProvider extends ContentProvider {
     public static final String HEADLINE = "HEADLINE";
     public static final String LINK = "LINK";
     public static final String DATE = "DATE";
-    public static final String PRIORITY = "PRIORITY";
 
     public static final String[] PROJECTION = new String[]{
-            _ID, IMG, HEADLINE, LINK, DATE, PRIORITY
+            _ID, IMG, HEADLINE, LINK, DATE
     };
 
     static {
@@ -136,7 +135,7 @@ public class MyContentProvider extends ContentProvider {
         }
         qb.setProjectionMap(NEWS_PROJECTION_MAP);
         final Cursor cursor = qb.query(db, projection,
-                selection, selectionArgs, null, null, "PRIORITY");
+                selection, selectionArgs, null, null, DATE + " DESC");
         if (getContext() != null) {
             cursor.setNotificationUri(getContext().getContentResolver(), uri);
         }
@@ -173,8 +172,7 @@ public class MyContentProvider extends ContentProvider {
                     " " + IMG + " TEXT, " +
                     " " + HEADLINE + " TEXT, " +
                     " " + LINK + " TEXT, " +
-                    " " + DATE + " TEXT, " +
-                    " " + PRIORITY + " INTEGER " +
+                    " " + DATE + " INTEGER " +
                     " ); ";
     private static final String SQL_DROP_MAIN = "DROP TABLE IF EXISTS " + TABLENAME + ";";
 

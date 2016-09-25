@@ -31,4 +31,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.jakewharton.hugo:hugo-annotations:1.2.1'
     compile 'com.squareup.picasso:picasso:2.5.2'
+    compile group: 'joda-time', name: 'joda-time', version: '2.3'
 }

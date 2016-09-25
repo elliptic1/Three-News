@@ -18,6 +18,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +33,6 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.PRIORITY;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT_TYPE;
 
@@ -83,6 +83,12 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 final ArrayList<String> titles = new ArrayList<>();
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
+                    if (jsonArticle.get("title").equals(JSONObject.NULL)
+                            || jsonArticle.get("urlToImage").equals(JSONObject.NULL)
+                            || jsonArticle.get("publishedAt").equals(JSONObject.NULL)
+                            ) {
+                        continue;
+                    }
                     final String title = jsonArticle.getString("title");
                     if (titles.contains(title)) {
                         continue;
@@ -92,12 +98,9 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     contentValues.put(IMG, jsonArticle.getString("urlToImage"));
                     contentValues.put(HEADLINE, title);
                     contentValues.put(LINK, jsonArticle.getString("url"));
-                    contentValues.put(DATE, jsonArticle.getString("publishedAt"));
-                    contentValues.put(PRIORITY, 1);
+                    final DateTime dateTime = new DateTime(jsonArticle.get("publishedAt"));
+                    contentValues.put(DATE, dateTime.getMillis() / 1000);
                     contentResolver.insert(CONTENT_URI, contentValues);
-                    if (titles.size() == 3) {
-                        break;
-                    }
                 }
             } catch (JSONException e) {
                 Log.e("nano", "json error: " + e);

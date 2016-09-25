@@ -30,7 +30,7 @@ public class NewsStoryFragment extends Fragment {
 
     private int deviceWidth;
     private int deviceHeight;
-    private int story_id = 0;
+    private int story_id;
     private ContentResolver contentResolver;
     private Handler contentObserverHandler;
     private ImageView storyImage;
