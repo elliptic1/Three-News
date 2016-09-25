@@ -7,7 +7,7 @@ import android.support.v7.preference.PreferenceFragmentCompat;
 import android.view.View;
 
 /**
- * Created by todd on 9/25/16.
+ * Created by todd on 9/25/16 for the Android Nanodegree capstone project.
  */
 
 public class SettingsFragment extends PreferenceFragmentCompat {
