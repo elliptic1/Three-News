@@ -18,7 +18,6 @@ import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MyTransform;
 
-import static com.tbse.threenews.R.id.headline;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
@@ -57,7 +56,7 @@ public class NewsStoryFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         storyImage = (ImageView) view.findViewById(R.id.story_image);
-        headlineTV = (TextView) view.findViewById(headline);
+        headlineTV = (TextView) view.findViewById(R.id.headline);
         Log.d("nano", "registering content observer");
         contentResolver.registerContentObserver(CONTENT_URI, false,
                 new MyContentObserver(contentObserverHandler));
