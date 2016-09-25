@@ -7,8 +7,10 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -42,6 +44,7 @@ import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT_TYPE;
 public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private ContentResolver contentResolver;
+    private RequestQueue queue;
     public static HashMap<String, String> sourceToName;
 
     @DebugLog
@@ -49,6 +52,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         super(context, autoInitialize);
         Log.d("nano", "MySyncAdapter init");
         contentResolver = context.getContentResolver();
+        queue = Volley.newRequestQueue(getContext());
         final String[] sources = getContext().getResources().getStringArray(R.array.newssources);
         final String[] sourcesnames = getContext().getResources().getStringArray(R.array.newssourcesnames);
         sourceToName = new HashMap<>();
@@ -62,6 +66,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         for (String source : sourceToName.keySet()) {
             final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                     getContext().getString(R.string.apiurl)
@@ -70,7 +75,6 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     new MyResponseListener(source), new MyErrorListener());
             stringRequest.setTag(this);
 
-            final RequestQueue queue = Volley.newRequestQueue(getContext());
             queue.add(stringRequest);
         }
     }
