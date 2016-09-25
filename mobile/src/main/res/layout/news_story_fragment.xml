@@ -8,6 +8,7 @@
     <ImageView
         android:id="@+id/story_image"
         android:layout_width="wrap_content"
+        android:src="@drawable/loading"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:scaleType="centerCrop"
@@ -22,6 +23,7 @@
         android:background="@drawable/textborder"
         android:padding="10dp"
         android:textColor="#FFFFFF"
+        android:text="Loading..."
         android:textSize="16sp" />
 
 </RelativeLayout>

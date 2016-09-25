@@ -40,14 +40,12 @@ import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT_TYPE;
 public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private ContentResolver contentResolver;
-    private String apiKey;
 
     @DebugLog
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
         Log.d("nano", "MySyncAdapter init");
         contentResolver = context.getContentResolver();
-        apiKey = getContext().getString(R.string.newsapikey);
     }
 
     @DebugLog

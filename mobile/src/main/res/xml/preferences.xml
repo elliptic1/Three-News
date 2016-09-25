@@ -46,11 +46,6 @@
             />
 
         <android.support.v7.preference.CheckBoxPreference
-            android:key="usa-today"
-            android:title="@string/usatoday"
-            />
-
-        <android.support.v7.preference.CheckBoxPreference
             android:key="the-washington-post"
             android:title="@string/washingtonpost"
             />
