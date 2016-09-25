@@ -203,6 +203,7 @@ public class MainNewsActivity extends AppCompatActivity
         article_top_right.setStoryId(1);
         article_bot_right.setStoryId(2);
 
+        dialog.show();
         ContentResolver.requestSync(MySyncAdapter.createSyncAccount(this),
                 AUTHORITY, MySyncAdapter.getSettingsBundle());
     }
@@ -286,11 +287,9 @@ public class MainNewsActivity extends AppCompatActivity
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (settingsFragment.isAdded()) {
-                getSupportFragmentManager().beginTransaction().remove(settingsFragment).commit();
-                delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            }
+        if (keyCode == KeyEvent.KEYCODE_BACK && settingsFragment.isAdded()) {
+            getSupportFragmentManager().beginTransaction().remove(settingsFragment).commit();
+            delayedHide(AUTO_HIDE_DELAY_MILLIS);
             return true;
         }
         return super.onKeyDown(keyCode, event);
