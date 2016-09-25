@@ -3,6 +3,8 @@ package com.tbse.threenews;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
@@ -15,10 +17,10 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.tbse.threenews.mysyncadapter.MySyncAdapter;
 import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
 
 import java.util.Calendar;
@@ -27,6 +29,7 @@ import hugo.weaving.DebugLog;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
+import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.AUTHORITY;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -103,22 +106,15 @@ public class MainNewsActivity extends AppCompatActivity
                 delayedHide(AUTO_HIDE_DELAY_MILLIS);
             }
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                Log.d("nano", "requesting");
-
-                final Cursor cursor = getContentResolver().query(CONTENT_URI, PROJECTION, null, null, null);
-                if (cursor != null && cursor.moveToFirst()) {
-                    Log.d("nano", cursor.getString(2));
-                    while (cursor.moveToNext()) {
-                        Log.d("nano", cursor.getString(2));
-                    }
-                    cursor.close();
-                } else {
-                    Log.e("nano", "nothing in cursor");
-                }
+                dialog.show();
+                ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
+                        AUTHORITY, MySyncAdapter.getSettingsBundle());
             }
             return false;
         }
     };
+
+    private ProgressDialog dialog;
 
     @Override
     @DebugLog
@@ -126,6 +122,20 @@ public class MainNewsActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main_news);
+
+        dialog = new ProgressDialog(this);
+        dialog.setMessage("Getting the latest news...");
+        dialog.setIndeterminate(true);
+        getContentResolver().registerContentObserver(CONTENT_URI, false,
+                new ContentObserver(new Handler(Looper.getMainLooper())) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        super.onChange(selfChange);
+                        if (dialog != null && dialog.isShowing()) {
+                            dialog.dismiss();
+                        }
+                    }
+                });
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
@@ -152,15 +162,6 @@ public class MainNewsActivity extends AppCompatActivity
         final PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
                 1000 * 60, alarmIntent);
-
-        getContentResolver().registerContentObserver(CONTENT_URI, false,
-                new ContentObserver(new Handler(Looper.getMainLooper())) {
-                    @Override
-                    public void onChange(boolean selfChange) {
-                        super.onChange(selfChange);
-                        Log.d("nano", "observer change");
-                    }
-                });
     }
 
     @Override
@@ -173,17 +174,18 @@ public class MainNewsActivity extends AppCompatActivity
         // are available.
         delayedHide(100);
 
-        NewsStoryFragment article_main = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
-        NewsStoryFragment article_top_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
-        NewsStoryFragment article_bot_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
+        final NewsStoryFragment article_main = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
+        final NewsStoryFragment article_top_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
+        final NewsStoryFragment article_bot_right = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
 
         article_main.setStoryId(0);
         article_top_right.setStoryId(1);
         article_bot_right.setStoryId(2);
 
+        ContentResolver.requestSync(MySyncAdapter.createSyncAccount(this),
+                AUTHORITY, MySyncAdapter.getSettingsBundle());
     }
 
-    @DebugLog
     private void toggle() {
         if (mVisible) {
             hide();
@@ -192,7 +194,6 @@ public class MainNewsActivity extends AppCompatActivity
         }
     }
 
-    @DebugLog
     private void hide() {
         // Hide UI first
         final ActionBar actionBar = getSupportActionBar();
@@ -208,7 +209,6 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @SuppressLint("InlinedApi")
-    @DebugLog
     private void show() {
         // Show the system bar
         mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -224,7 +224,6 @@ public class MainNewsActivity extends AppCompatActivity
      * Schedules a call to hide() in [delay] milliseconds, canceling any
      * previously scheduled calls.
      */
-    @DebugLog
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);

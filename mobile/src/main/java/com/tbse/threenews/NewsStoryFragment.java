@@ -12,9 +12,16 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
+
+import static com.tbse.threenews.R.id.story_box;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
 /**
@@ -23,23 +30,32 @@ import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 
 public class NewsStoryFragment extends Fragment {
 
+    private RelativeLayout storyBox;
+    private ImageView storyImage;
     private Handler contentObserverHandler;
     private ContentResolver contentResolver;
     private int story_id = 0;
+    private int deviceWidth;
+    private int deviceHeight;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         contentObserverHandler = new Handler(Looper.getMainLooper());
         contentResolver = getContext().getContentResolver();
+        final ThreeNewsApplication app
+                = (ThreeNewsApplication) getContext().getApplicationContext();
+        deviceHeight = app.getDeviceHeight();
+        deviceWidth = app.getDeviceWidth();
     }
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
+        storyImage = (ImageView) view.findViewById(R.id.story_image);
+        storyBox = (RelativeLayout) view.findViewById(story_box);
         contentResolver.registerContentObserver(CONTENT_URI, false,
-                new MyContentObserver(contentObserverHandler));
+                new MyContentObserver(view, contentObserverHandler));
     }
 
     @Nullable
@@ -55,25 +71,38 @@ public class NewsStoryFragment extends Fragment {
     }
 
     private class MyContentObserver extends ContentObserver {
+
+        private View view;
+
         /**
          * Creates a content observer.
          *
          * @param handler The handler to run {@link #onChange} on, or null if none.
          */
-        MyContentObserver(Handler handler) {
+        MyContentObserver(View view, Handler handler) {
             super(handler);
+            this.view = view;
         }
 
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            Log.d("nano", "content changed for frag " + story_id);
-            final Cursor c = contentResolver.query(CONTENT_URI, PROJECTION, null, null,
-                    " limit 1 offset " + story_id);
-
-            if (c != null && c.moveToFirst()) {
-                Log.d("nano", "found " + c.getString(c.getColumnIndex(HEADLINE)));
+            final Cursor c = contentResolver.query(CONTENT_URI, PROJECTION, null, null, null);
+            if (c != null && c.moveToPosition(story_id)) {
+                final String headline = c.getString(c.getColumnIndex(HEADLINE));
+                final String img = c.getString(c.getColumnIndex(IMG));
                 c.close();
+
+                storyImage.setContentDescription(headline);
+
+                Picasso.with(view.getContext()).load(img)
+                        .placeholder(R.drawable.loading)
+                        .resize(deviceWidth/2, deviceHeight)
+                        .centerCrop()
+                        .into(storyImage);
+
+                final TextView headlineTV = (TextView) view.findViewById(R.id.headline);
+                headlineTV.setText(headline);
             }
         }
     }

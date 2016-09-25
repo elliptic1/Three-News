@@ -9,10 +9,11 @@
         android:id="@+id/fullscreen_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="#000000"
         android:baselineAligned="false"
         android:keepScreenOn="true"
-        android:weightSum="1000"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:weightSum="1000">
 
         <fragment
             android:id="@+id/article_main"
@@ -35,6 +36,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
+                tools:ignore="NestedWeights"
                 tools:layout="@layout/news_story_fragment" />
 
             <fragment

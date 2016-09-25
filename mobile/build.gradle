@@ -37,6 +37,7 @@ dependencies {
     compile 'com.android.support:support-v4:24.2.1'
     compile 'com.squareup:otto:1.3.5'
     compile 'com.jakewharton.hugo:hugo-annotations:1.2.1'
+    compile 'com.squareup.picasso:picasso:2.5.2'
     testCompile 'junit:junit:4.12'
     compile project(':mysyncadapter')
 }
