@@ -25,7 +25,7 @@ public class MyContentProvider extends ContentProvider {
     private NewsDatabaseHelper newsDatabaseHelper;
     private static final String DBNAME = "newsdb";
     private static final String TABLENAME = "news";
-    private static final int DBVERSION = 4;
+    private static final int DBVERSION = 7;
     private SQLiteDatabase db;
     private static final String PROVIDER_NAME = "com.tbse.threenews.provider";
     private static final String URL = "content://" + PROVIDER_NAME + "/news";
@@ -114,6 +114,14 @@ public class MyContentProvider extends ContentProvider {
     @DebugLog
     public boolean onCreate() {
         newsDatabaseHelper = new NewsDatabaseHelper(getContext(), DBNAME, DBVERSION);
+        NEWS_PROJECTION_MAP = new HashMap<>();
+        NEWS_PROJECTION_MAP.put("_ID", "_ID");
+        NEWS_PROJECTION_MAP.put("HEADLINE", "HEADLINE");
+        NEWS_PROJECTION_MAP.put("LINK", "LINK");
+        NEWS_PROJECTION_MAP.put("SOURCE", "SOURCE");
+        NEWS_PROJECTION_MAP.put("DATE", "DATE");
+        NEWS_PROJECTION_MAP.put("IMG", "IMG");
+
         return true;
     }
 
@@ -134,7 +142,7 @@ public class MyContentProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
-        qb.setProjectionMap(NEWS_PROJECTION_MAP);
+
         final Cursor cursor = qb.query(db, projection,
                 selection, selectionArgs, null, null, DATE + " DESC");
         if (getContext() != null) {

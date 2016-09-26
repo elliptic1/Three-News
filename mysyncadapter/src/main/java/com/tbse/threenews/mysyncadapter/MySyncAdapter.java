@@ -74,7 +74,6 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                             + getContext().getString(R.string.newsapikey),
                     new MyResponseListener(source), new MyErrorListener());
             stringRequest.setTag(this);
-
             queue.add(stringRequest);
         }
     }
@@ -97,8 +96,8 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
             try {
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray("articles");
-                contentResolver.delete(CONTENT_URI, null, null);
                 final ArrayList<String> titles = new ArrayList<>();
+                contentResolver.delete(CONTENT_URI, null, null);
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
                     if (jsonArticle.get("title").equals(JSONObject.NULL)
@@ -114,6 +113,8 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     titles.add(title);
                     final ContentValues contentValues = new ContentValues();
                     contentValues.put(IMG, jsonArticle.getString("urlToImage"));
+//                    Log.d("nano", "putting " + sourceToName.get(source) + ": "
+//                            + title.substring(0, Math.min(title.length()-1, 20)) + "...");
                     contentValues.put(HEADLINE, title);
                     contentValues.put(SOURCE, source);
                     contentValues.put(LINK, jsonArticle.getString("url"));
