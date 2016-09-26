@@ -2,6 +2,10 @@
     <string name="app_name">Three News</string>
     <string name="refresh_button">Refresh News</string>
     <string name="settings_button">Settings</string>
+    <string name="app_settings">App Settings</string>
+    <string name="allow_mobile_data">Use Mobile Data</string>
+    <string name="allow_mobile_data_desc">Allow app to update news using mobile data</string>
+
     <string name="news_source">Select News Sources</string>
 
     <string name="cnn">CNN</string>

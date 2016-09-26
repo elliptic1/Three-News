@@ -9,9 +9,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -28,6 +33,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import hugo.weaving.DebugLog;
 
@@ -44,15 +51,13 @@ import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT_TYPE;
 
 public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
-    private ContentResolver contentResolver;
-    private RequestQueue queue;
+    private static RequestQueue queue;
     public static HashMap<String, String> sourceToName;
 
     @DebugLog
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
         Log.d("nano", "MySyncAdapter init");
-        contentResolver = context.getContentResolver();
         queue = Volley.newRequestQueue(getContext());
         final String[] sources = getContext().getResources().getStringArray(R.array.newssources);
         final String[] sourcesnames = getContext().getResources().getStringArray(R.array.newssourcesnames);
@@ -67,8 +72,21 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        List<String> sourcesToCall = new ArrayList<>();
+        if (!shouldGetNews(getContext())) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getContext(),
+                            "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
+                }
+            });
+            return;
+        }
+
+        getContext().getContentResolver().delete(CONTENT_URI, null, null);
+
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        final List<String> sourcesToCall = new ArrayList<>();
         for (String source : sourceToName.keySet()) {
             if (prefs.getBoolean(source, false)) {
                 sourcesToCall.add(source);
@@ -78,13 +96,33 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
             sourcesToCall.add("cnn");
         }
         for (String source : sourcesToCall) {
-            final StringRequest stringRequest = new StringRequest(Request.Method.GET,
-                    getContext().getString(R.string.apiurl)
-                            + "?source=" + source + "&apiKey="
-                            + getContext().getString(R.string.newsapikey),
-                    new MyResponseListener(source), new MyErrorListener());
-            stringRequest.setTag(this);
-            queue.add(stringRequest);
+            startRequestForSource(getContext(), source);
+        }
+    }
+
+    public static void startRequestForSource(Context context, String source) {
+        final StringRequest stringRequest = new StringRequest(Request.Method.GET,
+                context.getString(R.string.apiurl)
+                        + "?source=" + source + "&apiKey="
+                        + context.getString(R.string.newsapikey),
+                new MyResponseListener(context, source), new MyErrorListener());
+        stringRequest.setTag(context);
+        queue.add(stringRequest);
+    }
+
+    public static boolean shouldGetNews(Context context) {
+        return checkWifiOnAndConnected(context)
+                || PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean("allow-mobile-data", false);
+    }
+
+    private static boolean checkWifiOnAndConnected(Context context) {
+        final WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        if (wifiMgr.isWifiEnabled()) { // Wi-Fi adapter is ON
+            final WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+            return wifiInfo.getNetworkId() != -1;
+        } else {
+            return false; // Wi-Fi adapter is OFF
         }
     }
 
@@ -93,11 +131,15 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         super.onSyncCanceled();
     }
 
-    private class MyResponseListener implements Response.Listener<String> {
+    private static class MyResponseListener implements Response.Listener<String> {
         private String source;
+        private Context context;
+        private ExecutorService executorService;
 
-        MyResponseListener(String source) {
+        MyResponseListener(Context context, String source) {
+            this.context = context;
             this.source = source;
+            executorService = Executors.newFixedThreadPool(30);
         }
 
         @Override
@@ -107,11 +149,13 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray("articles");
                 final ArrayList<String> titles = new ArrayList<>();
-                contentResolver.delete(CONTENT_URI, null, null);
+                context.getContentResolver().delete(
+                        CONTENT_URI, SOURCE + " = ? ", new String[]{source});
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
                     if (jsonArticle.get("title").equals(JSONObject.NULL)
                             || jsonArticle.get("urlToImage").equals(JSONObject.NULL)
+                            || jsonArticle.get("url").equals(JSONObject.NULL)
                             || jsonArticle.get("publishedAt").equals(JSONObject.NULL)
                             ) {
                         continue;
@@ -130,7 +174,14 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     contentValues.put(LINK, jsonArticle.getString("url"));
                     final DateTime dateTime = new DateTime(jsonArticle.get("publishedAt"));
                     contentValues.put(DATE, dateTime.getMillis() / 1000);
-                    contentResolver.insert(CONTENT_URI, contentValues);
+                    executorService.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.d("nano", "IIIIIIIIIIIII");
+                            context.getContentResolver().insert(CONTENT_URI, contentValues);
+                            Log.d("nano", "-------IIIIIIIIIIIII");
+                        }
+                    });
                 }
             } catch (JSONException e) {
                 Log.e("nano", "json error: " + e);
@@ -138,7 +189,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    private class MyErrorListener implements Response.ErrorListener {
+    private static class MyErrorListener implements Response.ErrorListener {
         @Override
         @DebugLog
         public void onErrorResponse(VolleyError error) {

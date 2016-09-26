@@ -58,7 +58,6 @@ public class MyContentProvider extends ContentProvider {
     @Override
     @DebugLog
     public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
-        db = newsDatabaseHelper.getWritableDatabase();
         int count = 0;
         switch (sUriMatcher.match(uri)) {
             case NEWS:
@@ -95,7 +94,6 @@ public class MyContentProvider extends ContentProvider {
     @Override
     @DebugLog
     public Uri insert(@NonNull Uri uri, ContentValues values) {
-        db = newsDatabaseHelper.getWritableDatabase();
         final long rowid = db.insert(TABLENAME, "", values);
 
         if (rowid > 0) {
@@ -114,6 +112,7 @@ public class MyContentProvider extends ContentProvider {
     @DebugLog
     public boolean onCreate() {
         newsDatabaseHelper = new NewsDatabaseHelper(getContext(), DBNAME, DBVERSION);
+        db = newsDatabaseHelper.getWritableDatabase();
         NEWS_PROJECTION_MAP = new HashMap<>();
         NEWS_PROJECTION_MAP.put("_ID", "_ID");
         NEWS_PROJECTION_MAP.put("HEADLINE", "HEADLINE");
@@ -129,7 +128,6 @@ public class MyContentProvider extends ContentProvider {
     @DebugLog
     public Cursor query(@NonNull Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
-        db = newsDatabaseHelper.getWritableDatabase();
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
         qb.setTables(TABLENAME);
         switch (sUriMatcher.match(uri)) {
@@ -144,7 +142,7 @@ public class MyContentProvider extends ContentProvider {
         }
 
         final Cursor cursor = qb.query(db, projection,
-                selection, selectionArgs, null, null, DATE + " DESC");
+                selection, selectionArgs, null, null, sortOrder);
         if (getContext() != null) {
             cursor.setNotificationUri(getContext().getContentResolver(), uri);
         }
@@ -155,7 +153,6 @@ public class MyContentProvider extends ContentProvider {
     @DebugLog
     public int update(@NonNull Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
-        db = newsDatabaseHelper.getWritableDatabase();
         int count = 0;
         switch (sUriMatcher.match(uri)) {
             case NEWS:

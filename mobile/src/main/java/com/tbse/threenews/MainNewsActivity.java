@@ -15,21 +15,24 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.tbse.threenews.mysyncadapter.MySyncAdapter;
 import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
 
 import java.util.Calendar;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import hugo.weaving.DebugLog;
 
@@ -102,8 +105,14 @@ public class MainNewsActivity extends AppCompatActivity
             delayedHide(AUTO_HIDE_DELAY_MILLIS);
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                 dialog.show();
-                ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
-                        AUTHORITY, MySyncAdapter.getSettingsBundle());
+                if (!MySyncAdapter.shouldGetNews(view.getContext())) {
+                    Toast.makeText(view.getContext(),
+                            "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
+                    dialog.dismiss();
+                } else {
+                    ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
+                            AUTHORITY, MySyncAdapter.getSettingsBundle());
+                }
             }
             return false;
         }
@@ -123,6 +132,21 @@ public class MainNewsActivity extends AppCompatActivity
 
     private ProgressDialog dialog;
     private SettingsFragment settingsFragment;
+    ExecutorService exService = Executors.newFixedThreadPool(10);
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    protected void onPause() {
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(this);
+        super.onPause();
+    }
 
     @Override
     @DebugLog
@@ -204,8 +228,14 @@ public class MainNewsActivity extends AppCompatActivity
         article_bot_right.setStoryId(2);
 
         dialog.show();
-        ContentResolver.requestSync(MySyncAdapter.createSyncAccount(this),
-                AUTHORITY, MySyncAdapter.getSettingsBundle());
+        if (!MySyncAdapter.shouldGetNews(this)) {
+            Toast.makeText(this,
+                    "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
+            dialog.dismiss();
+        } else {
+            ContentResolver.requestSync(MySyncAdapter.createSyncAccount(this),
+                    AUTHORITY, MySyncAdapter.getSettingsBundle());
+        }
     }
 
     private void toggle() {
@@ -281,8 +311,20 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.d("nano", "shared pref changed " + key);
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, final String key) {
+        if (key.equals("allow-mobile-data")) {
+            return;
+        }
+        if (sharedPreferences.getBoolean(key, false)) {
+            final Context context = this;
+            final Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    MySyncAdapter.startRequestForSource(context, key);
+                }
+            };
+            exService.submit(runnable);
+        }
     }
 
     @Override

@@ -1,54 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v7.preference.PreferenceScreen
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<android.support.v7.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <android.support.v7.preference.PreferenceCategory
-        android:title="@string/news_source">
+    <android.support.v7.preference.PreferenceCategory android:title="@string/news_source">
+        <android.support.v7.preference.CheckBoxPreference
+            android:summary="@string/allow_mobile_data_desc"
+            android:key="allow-mobile-data"
+            android:title="@string/allow_mobile_data" />
+    </android.support.v7.preference.PreferenceCategory>
+    <android.support.v7.preference.PreferenceCategory android:title="@string/news_source">
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="associated-press"
-            android:title="@string/associatedpress"
-            />
+            android:title="@string/associatedpress" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="cnn"
-            android:title="@string/cnn"
-            />
+            android:title="@string/cnn" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="google-news"
-            android:title="@string/googlenews"
-            />
+            android:title="@string/googlenews" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="hacker-news"
-            android:title="@string/hackernews"
-            />
+            android:title="@string/hackernews" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="the-new-york-times"
-            android:title="@string/nyt"
-            />
+            android:title="@string/nyt" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="reuters"
-            android:title="@string/reuters"
-            />
+            android:title="@string/reuters" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="techcrunch"
-            android:title="@string/techcrunch"
-            />
+            android:title="@string/techcrunch" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="time"
-            android:title="@string/time"
-            />
+            android:title="@string/time" />
 
         <android.support.v7.preference.CheckBoxPreference
             android:key="the-washington-post"
-            android:title="@string/washingtonpost"
-            />
+            android:title="@string/washingtonpost" />
 
     </android.support.v7.preference.PreferenceCategory>
 

@@ -19,13 +19,17 @@ import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MyTransform;
 
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import static com.tbse.threenews.R.id.headline;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.SOURCE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider._ID;
 import static com.tbse.threenews.mysyncadapter.MySyncAdapter.sourceToName;
 
 /**
@@ -58,7 +62,7 @@ public class NewsStoryFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         storyImage = (ImageView) view.findViewById(R.id.story_image);
-        headlineTV = (TextView) view.findViewById(R.id.headline);
+        headlineTV = (TextView) view.findViewById(headline);
         contentResolver.registerContentObserver(CONTENT_URI, false,
                 new MyContentObserver(contentObserverHandler));
         contentObserverHandler.postDelayed(new ShowStoryRunnable(view), 3000);
@@ -77,6 +81,8 @@ public class NewsStoryFragment extends Fragment {
 
     private class MyContentObserver extends ContentObserver {
 
+        private ExecutorService executorService;
+
         /**
          * Creates a content observer.
          *
@@ -85,20 +91,53 @@ public class NewsStoryFragment extends Fragment {
         MyContentObserver(Handler handler) {
             super(handler);
             isStoryReady = false;
+            executorService = Executors.newFixedThreadPool(20);
         }
 
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            final Cursor c = contentResolver.query(
-                    CONTENT_URI, PROJECTION, null, null, DATE + " DESC");
-            if (c != null && c.moveToPosition(story_id) && !isStoryReady) {
-                Log.d("nano", "story " + story_id + " ready");
-                isStoryReady = true;
-            } else {
-                Log.d("nano", "story " + story_id + " not ready");
-            }
-            c.close();
+            final Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    Log.d("nano", "QQQQQQQQQQ");
+                    final Cursor c = contentResolver.query(
+                            CONTENT_URI, PROJECTION, null, null, DATE + " DESC");
+                    if (c != null && c.moveToPosition(story_id) && !isStoryReady) {
+                        Log.d("nano", "story " + story_id + " ready");
+                        isStoryReady = true;
+                    } else {
+                        Log.d("nano", "story " + story_id + " not ready");
+                    }
+
+                    //
+
+                    Log.d("nano", "db:");
+                    if (c != null && c.moveToFirst()) {
+                        int id = c.getInt(c.getColumnIndex(_ID));
+                        String headline = c.getString(c.getColumnIndex(HEADLINE));
+                        String source = c.getString(c.getColumnIndex(SOURCE));
+                        int date = c.getInt(c.getColumnIndex(DATE));
+                        Log.d("nano", id + " - " + date + " - " + source + " - " + headline);
+                        while (c.moveToNext()) {
+                            id = c.getInt(c.getColumnIndex(_ID));
+                            headline = c.getString(c.getColumnIndex(HEADLINE));
+                            source = c.getString(c.getColumnIndex(SOURCE));
+                            date = c.getInt(c.getColumnIndex(DATE));
+                            Log.d("nano", id + " - " + date + " - " + source + " - " + headline);
+                        }
+                    }
+                    Log.d("nano", "--------");
+
+                    //
+                    if (c != null) {
+                        c.close();
+                        Log.d("nano", "-------QQQQQQQQQQ");
+                    }
+                }
+            };
+            executorService.submit(runnable);
+
         }
     }
 
@@ -150,7 +189,7 @@ public class NewsStoryFragment extends Fragment {
                     c.close();
                 }
             }
-            contentObserverHandler.postDelayed(this, new Random().nextInt(20000)+10000);
+            contentObserverHandler.postDelayed(this, new Random().nextInt(20000) + 10000);
         }
     }
 
