@@ -27,6 +27,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import hugo.weaving.DebugLog;
 
@@ -67,7 +68,16 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        List<String> sourcesToCall = new ArrayList<>();
         for (String source : sourceToName.keySet()) {
+            if (prefs.getBoolean(source, false)) {
+                sourcesToCall.add(source);
+            }
+        }
+        if (sourcesToCall.size() == 0) {
+            sourcesToCall.add("cnn");
+        }
+        for (String source : sourcesToCall) {
             final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                     getContext().getString(R.string.apiurl)
                             + "?source=" + source + "&apiKey="

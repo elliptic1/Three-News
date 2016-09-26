@@ -14,8 +14,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        view.setPadding(300, 300, 300, 300);
-        view.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.trans_peter_river));
+        view.setPadding(300, 100, 300, 100);
+        view.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.peter_river));
     }
 
     @Override
