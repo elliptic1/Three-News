@@ -121,6 +121,7 @@ public class MyContentProvider extends ContentProvider {
         NEWS_PROJECTION_MAP.put("SOURCE", "SOURCE");
         NEWS_PROJECTION_MAP.put("DATE", "DATE");
         NEWS_PROJECTION_MAP.put("IMG", "IMG");
+
         return true;
     }
 
@@ -141,15 +142,9 @@ public class MyContentProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
-        qb.setProjectionMap(NEWS_PROJECTION_MAP);
-        Log.d("nano", "projection is ");
-        for (String s : projection) {
-            Log.d("nano", "proj: " + s);
-        }
-        Log.d("nano", "querying where " + selection + " has args " + selectionArgs + " in order " + sortOrder);
+
         final Cursor cursor = qb.query(db, projection,
                 selection, selectionArgs, null, null, DATE + " DESC");
-        Log.d("nano", "can go to first? " + cursor.moveToFirst());
         if (getContext() != null) {
             cursor.setNotificationUri(getContext().getContentResolver(), uri);
         }

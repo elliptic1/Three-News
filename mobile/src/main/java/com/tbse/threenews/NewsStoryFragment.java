@@ -18,6 +18,8 @@ import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MyTransform;
 
+import java.util.Random;
+
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
@@ -57,7 +59,6 @@ public class NewsStoryFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         storyImage = (ImageView) view.findViewById(R.id.story_image);
         headlineTV = (TextView) view.findViewById(R.id.headline);
-        Log.d("nano", "registering content observer");
         contentResolver.registerContentObserver(CONTENT_URI, false,
                 new MyContentObserver(contentObserverHandler));
         contentObserverHandler.postDelayed(new ShowStoryRunnable(view), 3000);
@@ -83,7 +84,6 @@ public class NewsStoryFragment extends Fragment {
          */
         MyContentObserver(Handler handler) {
             super(handler);
-            Log.d("nano", "made new Content Observer");
             isStoryReady = false;
         }
 
@@ -150,7 +150,7 @@ public class NewsStoryFragment extends Fragment {
                     c.close();
                 }
             }
-            contentObserverHandler.postDelayed(this, 5000);
+            contentObserverHandler.postDelayed(this, new Random().nextInt(20000)+10000);
         }
     }
 

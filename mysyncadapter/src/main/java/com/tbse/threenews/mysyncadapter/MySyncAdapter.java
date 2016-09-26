@@ -67,7 +67,6 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                               String authority, ContentProviderClient provider,
                               SyncResult syncResult) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        contentResolver.delete(CONTENT_URI, null, null);
         for (String source : sourceToName.keySet()) {
             final StringRequest stringRequest = new StringRequest(Request.Method.GET,
                     getContext().getString(R.string.apiurl)
@@ -98,6 +97,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray("articles");
                 final ArrayList<String> titles = new ArrayList<>();
+                contentResolver.delete(CONTENT_URI, null, null);
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
                     if (jsonArticle.get("title").equals(JSONObject.NULL)
