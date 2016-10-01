@@ -409,7 +409,11 @@ public class MainNewsActivity extends AppCompatActivity
                             .transform(myTransform)
                             .into(storyImage);
 
-                    headlineTV.setText((story_id == 0 ? (sourceToName.get(source) + ": ") : "") + headline);
+                    if (story_id == 0) {
+                        headlineTV.setText(sourceToName.get(source) + ": " + headline);
+                    } else {
+                        headlineTV.setText(headline);
+                    }
                 }
             }
 
