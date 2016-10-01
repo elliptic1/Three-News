@@ -1,5 +1,6 @@
 package com.tbse.threenews;
 
+import android.accounts.Account;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -21,13 +22,18 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MySyncAdapter;
+import com.tbse.threenews.mysyncadapter.MyTransform;
 import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
 
 import java.util.Calendar;
@@ -37,7 +43,12 @@ import java.util.concurrent.Executors;
 import hugo.weaving.DebugLog;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.PROJECTION;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.SOURCE;
+import static com.tbse.threenews.mysyncadapter.MySyncAdapter.sourceToName;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.AUTHORITY;
 
 /**
@@ -47,6 +58,9 @@ import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.AUTHORITY;
 public class MainNewsActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor>,
         SharedPreferences.OnSharedPreferenceChangeListener {
+
+    private Handler contentObserverHandler;
+    private NewsStoryFragment[] fragments;
 
     private static final int AUTO_HIDE_DELAY_MILLIS = 1000;
 
@@ -87,6 +101,8 @@ public class MainNewsActivity extends AppCompatActivity
         }
     };
     private boolean mVisible;
+    private int deviceWidth;
+    private int deviceHeight;
 
     private final Runnable mHideRunnable = new Runnable() {
         @Override
@@ -134,6 +150,8 @@ public class MainNewsActivity extends AppCompatActivity
     private SettingsFragment settingsFragment;
     ExecutorService exService = Executors.newFixedThreadPool(10);
 
+    private Account account;
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -155,7 +173,16 @@ public class MainNewsActivity extends AppCompatActivity
 
         setContentView(R.layout.activity_main_news);
 
+        final ThreeNewsApplication app = (ThreeNewsApplication) getApplicationContext();
+        deviceHeight = app.getDeviceHeight();
+        deviceWidth = app.getDeviceWidth();
+
         settingsFragment = new SettingsFragment();
+        fragments = new NewsStoryFragment[3];
+
+        account = MySyncAdapter.createSyncAccount(this);
+
+        contentObserverHandler = new Handler();
 
         dialog = new ProgressDialog(this);
         dialog.setMessage("Getting the latest news...");
@@ -164,12 +191,16 @@ public class MainNewsActivity extends AppCompatActivity
                 new ContentObserver(new Handler(Looper.getMainLooper())) {
                     @Override
                     public void onChange(boolean selfChange) {
+                        Log.d("nano", "onChange for dialog");
                         super.onChange(selfChange);
                         if (dialog != null && dialog.isShowing()) {
                             dialog.dismiss();
                         }
                     }
                 });
+
+        getContentResolver().registerContentObserver(CONTENT_URI, false,
+                new MyContentObserver(contentObserverHandler));
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
@@ -216,16 +247,9 @@ public class MainNewsActivity extends AppCompatActivity
         // are available.
         delayedHide(100);
 
-        final NewsStoryFragment article_main =
-                (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
-        final NewsStoryFragment article_top_right =
-                (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
-        final NewsStoryFragment article_bot_right =
-                (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
-
-        article_main.setStoryId(0);
-        article_top_right.setStoryId(1);
-        article_bot_right.setStoryId(2);
+        fragments[0] = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_main);
+        fragments[1] = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_top_right);
+        fragments[2] = (NewsStoryFragment) getSupportFragmentManager().findFragmentById(R.id.article_bot_right);
 
         dialog.show();
         if (!MySyncAdapter.shouldGetNews(this)) {
@@ -233,8 +257,7 @@ public class MainNewsActivity extends AppCompatActivity
                     "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
             dialog.dismiss();
         } else {
-            ContentResolver.requestSync(MySyncAdapter.createSyncAccount(this),
-                    AUTHORITY, MySyncAdapter.getSettingsBundle());
+            ContentResolver.requestSync(account, AUTHORITY, MySyncAdapter.getSettingsBundle());
         }
     }
 
@@ -315,16 +338,19 @@ public class MainNewsActivity extends AppCompatActivity
         if (key.equals("allow-mobile-data")) {
             return;
         }
-        if (sharedPreferences.getBoolean(key, false)) {
+        final String source = sharedPreferences.getString(key, "none");
+        if (!source.equals("none")) {
             final Context context = this;
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
-                    MySyncAdapter.startRequestForSource(context, key);
+                    MySyncAdapter.startRequestForSource(context, source);
                 }
             };
             exService.submit(runnable);
         }
+
+        getSupportFragmentManager().beginTransaction().remove(settingsFragment).commit();
     }
 
     @Override
@@ -336,4 +362,63 @@ public class MainNewsActivity extends AppCompatActivity
         }
         return super.onKeyDown(keyCode, event);
     }
+
+    private class MyContentObserver extends ContentObserver {
+
+        MyContentObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            super.onChange(selfChange);
+            final Cursor c = getContentResolver().query(
+                    CONTENT_URI, PROJECTION, null, null, DATE + " DESC");
+            for (int story_id = 0; story_id < 3; story_id++) {
+                if (c != null && c.moveToPosition(story_id)) {
+                    final String img = c.getString(c.getColumnIndex(IMG));
+                    final String source = c.getString(c.getColumnIndex(SOURCE));
+                    final String headline = c.getString(c.getColumnIndex(HEADLINE));
+
+                    final View view = fragments[story_id].getView();
+
+                    if (view == null) {
+                        continue;
+                    }
+
+                    final TextView headlineTV = (TextView) view.findViewById(R.id.headline);
+                    final ImageView storyImage = (ImageView) view.findViewById(R.id.story_image);
+
+                    if (headline.equals(headlineTV.getText().toString())) {
+                        Log.d("nano", "headline didn't change, skipping");
+                        return;
+                    }
+
+                    storyImage.setContentDescription(headline);
+
+                    final MyTransform myTransform;
+                    if (story_id == 0) {
+                        myTransform = new MyTransform(deviceWidth * 0.618f, 1.0f * deviceHeight);
+                    } else {
+                        myTransform = new MyTransform(deviceWidth * 0.382f, deviceHeight / 2.0f);
+                    }
+
+                    Picasso.with(storyImage.getContext())
+                            .load(img)
+                            .placeholder(R.drawable.loading)
+                            .transform(myTransform)
+                            .into(storyImage);
+
+                    headlineTV.setText((story_id == 0 ? (sourceToName.get(source) + ": ") : "") + headline);
+                }
+            }
+
+            if (c != null) {
+                c.close();
+            }
+
+        }
+
+    }
+
 }

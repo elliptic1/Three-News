@@ -30,11 +30,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import hugo.weaving.DebugLog;
 
@@ -59,12 +57,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         super(context, autoInitialize);
         Log.d("nano", "MySyncAdapter init");
         queue = Volley.newRequestQueue(getContext());
-        final String[] sources = getContext().getResources().getStringArray(R.array.newssources);
-        final String[] sourcesnames = getContext().getResources().getStringArray(R.array.newssourcesnames);
-        sourceToName = new HashMap<>();
-        for (int i = 0; i < sources.length; i++) {
-            sourceToName.put(sources[i], sourcesnames[i]);
-        }
+        sourceToName = getHashMapFromStringArrayIds(R.array.newssources, R.array.newssourcesnames);
     }
 
     @DebugLog
@@ -83,21 +76,11 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
             return;
         }
 
+        Log.d("nano", "deleting all, onPerformSync");
         getContext().getContentResolver().delete(CONTENT_URI, null, null);
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        final List<String> sourcesToCall = new ArrayList<>();
-        for (String source : sourceToName.keySet()) {
-            if (prefs.getBoolean(source, false)) {
-                sourcesToCall.add(source);
-            }
-        }
-        if (sourcesToCall.size() == 0) {
-            sourcesToCall.add("cnn");
-        }
-        for (String source : sourcesToCall) {
-            startRequestForSource(getContext(), source);
-        }
+        startRequestForSource(getContext(), prefs.getString("news_source", "cnn"));
     }
 
     public static void startRequestForSource(Context context, String source) {
@@ -107,6 +90,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                         + context.getString(R.string.newsapikey),
                 new MyResponseListener(context, source), new MyErrorListener());
         stringRequest.setTag(context);
+        Log.d("nano", "Making API call...");
         queue.add(stringRequest);
     }
 
@@ -133,13 +117,11 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private static class MyResponseListener implements Response.Listener<String> {
         private String source;
-        private Context context;
-        private ExecutorService executorService;
+        private WeakReference<Context> context;
 
         MyResponseListener(Context context, String source) {
-            this.context = context;
+            this.context = new WeakReference<>(context);
             this.source = source;
-            executorService = Executors.newFixedThreadPool(30);
         }
 
         @Override
@@ -149,8 +131,12 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray("articles");
                 final ArrayList<String> titles = new ArrayList<>();
-                context.getContentResolver().delete(
-                        CONTENT_URI, SOURCE + " = ? ", new String[]{source});
+                Log.d("nano", "responded with " + array.length() + " articles");
+                if (context.get() == null) {
+                    return;
+                }
+                context.get().getContentResolver().delete(CONTENT_URI, null, null);
+
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
                     if (jsonArticle.get("title").equals(JSONObject.NULL)
@@ -161,27 +147,20 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                         continue;
                     }
                     final String title = jsonArticle.getString("title");
-                    if (titles.contains(title)) {
+                    if (titles.contains(title) || title.length() < 1) {
+                        Log.d("nano", "title problem");
                         continue;
                     }
                     titles.add(title);
                     final ContentValues contentValues = new ContentValues();
                     contentValues.put(IMG, jsonArticle.getString("urlToImage"));
-//                    Log.d("nano", "putting " + sourceToName.get(source) + ": "
-//                            + title.substring(0, Math.min(title.length()-1, 20)) + "...");
                     contentValues.put(HEADLINE, title);
                     contentValues.put(SOURCE, source);
                     contentValues.put(LINK, jsonArticle.getString("url"));
                     final DateTime dateTime = new DateTime(jsonArticle.get("publishedAt"));
                     contentValues.put(DATE, dateTime.getMillis() / 1000);
-                    executorService.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.d("nano", "IIIIIIIIIIIII");
-                            context.getContentResolver().insert(CONTENT_URI, contentValues);
-                            Log.d("nano", "-------IIIIIIIIIIIII");
-                        }
-                    });
+                    Log.d("nano", "insert " + title);
+                    context.get().getContentResolver().insert(CONTENT_URI, contentValues);
                 }
             } catch (JSONException e) {
                 Log.e("nano", "json error: " + e);
@@ -212,4 +191,14 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         return settingsBundle;
     }
 
+
+    private HashMap<String, String> getHashMapFromStringArrayIds(final int a, final int b) {
+        final String[] sources = getContext().getResources().getStringArray(a);
+        final String[] sourcesnames = getContext().getResources().getStringArray(b);
+        sourceToName = new HashMap<>();
+        for (int i = 0; i < sources.length; i++) {
+            sourceToName.put(sources[i], sourcesnames[i]);
+        }
+        return sourceToName;
+    }
 }
