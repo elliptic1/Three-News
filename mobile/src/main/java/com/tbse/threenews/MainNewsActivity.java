@@ -253,8 +253,8 @@ public class MainNewsActivity extends AppCompatActivity
 
         dialog.show();
         if (!MySyncAdapter.shouldGetNews(this)) {
-            Toast.makeText(this,
-                    "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
+//            Toast.makeText(this,
+//                    "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
             dialog.dismiss();
         } else {
             ContentResolver.requestSync(account, AUTHORITY, MySyncAdapter.getSettingsBundle());

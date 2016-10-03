@@ -6,7 +6,7 @@
     <string name="allow_mobile_data">Use Mobile Data</string>
     <string name="allow_mobile_data_desc">Allow app to update news using mobile data</string>
 
-    <string name="news_source">Select News Sources</string>
+    <string name="news_source">Select News Source</string>
 
     <string name="cnn">CNN</string>
     <string name="techcrunch">TechCrunch</string>
@@ -18,4 +18,5 @@
     <string name="washingtonpost">The Washington Post</string>
     <string name="usatoday">USA Today</string>
     <string name="time">Time</string>
+    <string name="save">Save</string>
 </resources>
