@@ -5,6 +5,8 @@ import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -59,18 +61,25 @@ public class MainNewsActivity extends AppCompatActivity
         implements LoaderManager.LoaderCallbacks<Cursor>,
         SharedPreferences.OnSharedPreferenceChangeListener {
 
-    private Handler contentObserverHandler;
-    private NewsStoryFragment[] fragments;
-
     private static final int AUTO_HIDE_DELAY_MILLIS = 1000;
+    private static final int UI_ANIMATION_DELAY = 300;
+
+    private boolean mVisible;
+    private int deviceWidth;
+    private int deviceHeight;
+    private Account account;
+    private final ExecutorService exService = Executors.newFixedThreadPool(10);
+    private Handler contentObserverHandler;
+    private final Handler mHideHandler = new Handler();
+    private ProgressDialog dialog;
+    private SettingsFragment settingsFragment;
+    private NewsStoryFragment[] fragments;
+    private View mContentView;
 
     /**
      * Some older devices needs a small delay between UI widget updates
      * and a change of the status and navigation bar.
      */
-    private static final int UI_ANIMATION_DELAY = 300;
-    private final Handler mHideHandler = new Handler();
-    private View mContentView;
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -100,9 +109,6 @@ public class MainNewsActivity extends AppCompatActivity
             mControlsView.setVisibility(View.VISIBLE);
         }
     };
-    private boolean mVisible;
-    private int deviceWidth;
-    private int deviceHeight;
 
     private final Runnable mHideRunnable = new Runnable() {
         @Override
@@ -110,47 +116,6 @@ public class MainNewsActivity extends AppCompatActivity
             hide();
         }
     };
-    /**
-     * Touch listener to use for in-layout UI controls to delay hiding the
-     * system UI. This is to prevent the jarring behavior of controls going away
-     * while interacting with activity UI.
-     */
-    private final View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                dialog.show();
-                if (!MySyncAdapter.shouldGetNews(view.getContext())) {
-                    Toast.makeText(view.getContext(),
-                            "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
-                    dialog.dismiss();
-                } else {
-                    ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
-                            AUTHORITY, MySyncAdapter.getSettingsBundle());
-                }
-            }
-            return false;
-        }
-    };
-
-    private final View.OnTouchListener mSettingsDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                getSupportFragmentManager().beginTransaction()
-                        .replace(android.R.id.content, settingsFragment)
-                        .commit();
-            }
-            return false;
-        }
-    };
-
-    private ProgressDialog dialog;
-    private SettingsFragment settingsFragment;
-    ExecutorService exService = Executors.newFixedThreadPool(10);
-
-    private Account account;
 
     @Override
     protected void onResume() {
@@ -261,49 +226,6 @@ public class MainNewsActivity extends AppCompatActivity
         }
     }
 
-    private void toggle() {
-        if (mVisible) {
-            hide();
-        } else {
-            show();
-        }
-    }
-
-    private void hide() {
-        // Hide UI first
-        final ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.hide();
-        }
-        mControlsView.setVisibility(View.GONE);
-        mVisible = false;
-
-        // Schedule a runnable to remove the status and navigation bar after a delay
-        mHideHandler.removeCallbacks(mShowPart2Runnable);
-        mHideHandler.postDelayed(mHidePart2Runnable, UI_ANIMATION_DELAY);
-    }
-
-    @SuppressLint("InlinedApi")
-    private void show() {
-        // Show the system bar
-        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        mVisible = true;
-
-        // Schedule a runnable to display UI elements after a delay
-        mHideHandler.removeCallbacks(mHidePart2Runnable);
-        mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
-    }
-
-    /**
-     * Schedules a call to hide() in [delay] milliseconds, canceling any
-     * previously scheduled calls.
-     */
-    private void delayedHide(int delayMillis) {
-        mHideHandler.removeCallbacks(mHideRunnable);
-        mHideHandler.postDelayed(mHideRunnable, delayMillis);
-    }
-
     @Override
     @DebugLog
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
@@ -320,17 +242,6 @@ public class MainNewsActivity extends AppCompatActivity
     @DebugLog
     public void onLoaderReset(Loader<Cursor> loader) {
 
-    }
-
-    private int getNavigationBarHeight(Context context, int orientation) {
-        final Resources resources = context.getResources();
-
-        final int id = resources.getIdentifier(
-                orientation == Configuration.ORIENTATION_PORTRAIT ? "navigation_bar_height" : "navigation_bar_height_landscape", "dimen", "android");
-        if (id > 0) {
-            return resources.getDimensionPixelSize(id);
-        }
-        return 0;
     }
 
     @Override
@@ -411,6 +322,13 @@ public class MainNewsActivity extends AppCompatActivity
 
                     if (story_id == 0) {
                         headlineTV.setText(sourceToName.get(source) + ": " + headline);
+
+                        final Intent intent = new Intent(getApplicationContext(), MyAppWidget.class);
+                        intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
+                        intent.putExtra("headline", headline);
+                        intent.putExtra("imageUrl", img);
+                        intent.putExtra("ids", getAppWidgetIds());
+                        sendBroadcast(intent);
                     } else {
                         headlineTV.setText(headline);
                     }
@@ -425,4 +343,101 @@ public class MainNewsActivity extends AppCompatActivity
 
     }
 
+    private void toggle() {
+        if (mVisible) {
+            hide();
+        } else {
+            show();
+        }
+    }
+
+    private void hide() {
+        // Hide UI first
+        final ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.hide();
+        }
+        mControlsView.setVisibility(View.GONE);
+        mVisible = false;
+
+        // Schedule a runnable to remove the status and navigation bar after a delay
+        mHideHandler.removeCallbacks(mShowPart2Runnable);
+        mHideHandler.postDelayed(mHidePart2Runnable, UI_ANIMATION_DELAY);
+    }
+
+    private int getNavigationBarHeight(Context context, int orientation) {
+        final Resources resources = context.getResources();
+
+        final int id = resources.getIdentifier(
+                orientation == Configuration.ORIENTATION_PORTRAIT
+                        ? "navigation_bar_height"
+                        : "navigation_bar_height_landscape", "dimen", "android");
+        if (id > 0) {
+            return resources.getDimensionPixelSize(id);
+        }
+        return 0;
+    }
+
+    /**
+     * Schedules a call to hide() in [delay] milliseconds, canceling any
+     * previously scheduled calls.
+     */
+    private void delayedHide(int delayMillis) {
+        mHideHandler.removeCallbacks(mHideRunnable);
+        mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    /**
+     * Touch listener to use for in-layout UI controls to delay hiding the
+     * system UI. This is to prevent the jarring behavior of controls going away
+     * while interacting with activity UI.
+     */
+    private final View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            delayedHide(AUTO_HIDE_DELAY_MILLIS);
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                dialog.show();
+                if (!MySyncAdapter.shouldGetNews(view.getContext())) {
+                    Toast.makeText(view.getContext(),
+                            "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
+                    dialog.dismiss();
+                } else {
+                    ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
+                            AUTHORITY, MySyncAdapter.getSettingsBundle());
+                }
+            }
+            return false;
+        }
+    };
+
+    private final View.OnTouchListener mSettingsDelayHideTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(android.R.id.content, settingsFragment)
+                        .commit();
+            }
+            return false;
+        }
+    };
+
+    @SuppressLint("InlinedApi")
+    private void show() {
+        // Show the system bar
+        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        mVisible = true;
+
+        // Schedule a runnable to display UI elements after a delay
+        mHideHandler.removeCallbacks(mHidePart2Runnable);
+        mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
+    }
+
+    public int[] getAppWidgetIds() {
+        return AppWidgetManager
+                .getInstance(this)
+                .getAppWidgetIds(new ComponentName(this, MyAppWidget.class));
+    }
 }

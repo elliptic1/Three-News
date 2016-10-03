@@ -16,13 +16,8 @@ import android.view.ViewGroup;
 public class SettingsFragment extends PreferenceFragmentCompat {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // create ContextThemeWrapper from the original Activity Context with the custom theme
         final Context contextThemeWrapper = new ContextThemeWrapper(getActivity(), R.style.Theme_Custom);
-
-        // clone the inflater using the ContextThemeWrapper
-        LayoutInflater localInflater = inflater.cloneInContext(contextThemeWrapper);
-
-        // inflate the layout using the cloned inflater, not default inflater
+        final LayoutInflater localInflater = inflater.cloneInContext(contextThemeWrapper);
         return super.onCreateView(localInflater, container, savedInstanceState);
     }
 
