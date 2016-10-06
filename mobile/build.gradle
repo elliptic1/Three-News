@@ -13,7 +13,7 @@ android {
     compileSdkVersion 24
     buildToolsVersion "24.0.2"
     defaultConfig {
-        applicationId "com.tbse.threenews"
+        applicationId "com.tbse.nano.threenews"
         minSdkVersion 15
         targetSdkVersion 24
         versionCode 1
@@ -53,4 +53,8 @@ dependencies {
     compile 'com.facebook.stetho:stetho:1.4.1'
     testCompile 'junit:junit:4.12'
     compile project(':mysyncadapter')
+    compile 'com.google.firebase:firebase-core:9.6.1'
+    compile 'com.google.firebase:firebase-crash:9.6.1'
 }
+
+apply plugin: 'com.google.gms.google-services'
