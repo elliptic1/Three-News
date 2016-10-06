@@ -69,6 +69,7 @@
             android:layout_height="match_parent"
             android:layout_weight="4"
             android:background="@color/darkest_alice"
+            android:contentDescription="@string/refresh_button"
             android:text="@string/refresh_button"
             android:textColor="#FFFFFF"
             android:textSize="24sp" />
@@ -81,6 +82,7 @@
             android:layout_marginRight="48dp"
             android:layout_weight="1"
             android:background="#FFFFFF"
+            android:contentDescription="@string/settings_button"
             android:text="@string/settings_button"
             android:textColor="@color/darkest_alice"
             android:textSize="20sp"
