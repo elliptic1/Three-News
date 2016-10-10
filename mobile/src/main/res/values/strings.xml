@@ -19,4 +19,13 @@
     <string name="usatoday">USA Today</string>
     <string name="time">Time</string>
     <string name="save">Save</string>
+    <string name="gettinglatestnews">Getting the latest news…</string>
+    <string name="source_none">none</string>
+    <string name="appwidget_update_action">android.appwidget.action.APPWIDGET_UPDATE</string>
+    <string name="extra_headline">headline</string>
+    <string name="extra_image_url">imageUrl</string>
+    <string name="extra_ids">ids</string>
+    <string name="cantupdatenewsondata">Can\'t update news while on mobile data!</string>
+    <string name="loading">LOADING...</string>
+    <string name="main_image">Main image</string>
 </resources>

@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">My Sync Adapter</string>
-    <string name="apiurl" translatable="false">https://newsapi.org/v1/articles</string>
+    <string name="apiurl" translatable="false">https://newsapi.org/v1/articles?source=%1$s&amp;apiKey=%2$s</string>
+    <string name="cantupdateondata">Can\'t update news while on mobile data!</string>
+    <string name="news_source">news_source</string>
+    <string name="pref_allow_mobile_data">allow-mobile-data</string>
+    <string name="json_title">title</string>
+    <string name="cv_url_image">urlToImage</string>
+    <string name="cv_url_link">url</string>
+    <string name="cv_pub_at">publishedAt</string>
+    <string name="articles">articles</string>
+    <string name="alarm_action_name">com.tbse.threenews.alarm</string>
 </resources>

@@ -1,9 +1,21 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFFFF"
     tools:context="com.tbse.threenews.MainNewsActivity">
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/my_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:layout_marginTop="24dp"
+        android:paddingEnd="44dp"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
     <LinearLayout
         android:id="@+id/fullscreen_content"
@@ -51,43 +63,4 @@
 
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/fullscreen_content_controls"
-        style="?metaButtonBarStyle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:background="@color/black_overlay"
-        android:orientation="horizontal"
-        android:weightSum="5"
-        tools:ignore="UselessParent">
-
-        <Button
-            android:id="@+id/refresh_button"
-            style="?metaButtonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="4"
-            android:background="@color/darkest_alice"
-            android:contentDescription="@string/refresh_button"
-            android:text="@string/refresh_button"
-            android:textColor="#FFFFFF"
-            android:textSize="24sp" />
-
-        <Button
-            android:id="@+id/settings_button"
-            style="?metaButtonBarButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginRight="48dp"
-            android:layout_weight="1"
-            android:background="#FFFFFF"
-            android:contentDescription="@string/settings_button"
-            android:text="@string/settings_button"
-            android:textColor="@color/darkest_alice"
-            android:textSize="20sp"
-            tools:ignore="RtlHardcoded" />
-
-    </LinearLayout>
-
-</FrameLayout>
+</android.support.design.widget.CoordinatorLayout>

@@ -24,11 +24,11 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -69,12 +69,17 @@ public class MainNewsActivity extends AppCompatActivity
     private int deviceHeight;
     private Account account;
     private final ExecutorService exService = Executors.newFixedThreadPool(10);
+    private ContentObserver contentObserver;
     private Handler contentObserverHandler;
     private final Handler mHideHandler = new Handler();
     private ProgressDialog dialog;
     private SettingsFragment settingsFragment;
     private NewsStoryFragment[] fragments;
     private View mContentView;
+    private AlarmManager alarmManager;
+    private PendingIntent alarmPendingIntent;
+    private Calendar calendar;
+    private Toolbar myToolbar;
 
     /**
      * Some older devices needs a small delay between UI widget updates
@@ -97,7 +102,6 @@ public class MainNewsActivity extends AppCompatActivity
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         }
     };
-    private View mControlsView;
     private final Runnable mShowPart2Runnable = new Runnable() {
         @Override
         public void run() {
@@ -106,7 +110,6 @@ public class MainNewsActivity extends AppCompatActivity
             if (actionBar != null) {
                 actionBar.show();
             }
-            mControlsView.setVisibility(View.VISIBLE);
         }
     };
 
@@ -122,12 +125,21 @@ public class MainNewsActivity extends AppCompatActivity
         super.onResume();
         PreferenceManager.getDefaultSharedPreferences(this)
                 .registerOnSharedPreferenceChangeListener(this);
+        ((ThreeNewsApplication) getApplicationContext()).setShouldRun(true);
+        getContentResolver().registerContentObserver(CONTENT_URI, false, contentObserver);
+
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        alarmManager.setRepeating(AlarmManager.RTC, calendar.getTimeInMillis(),
+                1000 * 60, alarmPendingIntent);
     }
 
     @Override
     protected void onPause() {
         PreferenceManager.getDefaultSharedPreferences(this)
                 .unregisterOnSharedPreferenceChangeListener(this);
+        ((ThreeNewsApplication) getApplicationContext()).setShouldRun( numberOfWidgets() > 0 );
+        getContentResolver().unregisterContentObserver(contentObserver);
+        alarmManager.cancel(alarmPendingIntent);
         super.onPause();
     }
 
@@ -145,18 +157,20 @@ public class MainNewsActivity extends AppCompatActivity
         settingsFragment = new SettingsFragment();
         fragments = new NewsStoryFragment[3];
 
+        calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+
         account = MySyncAdapter.createSyncAccount(this);
 
         contentObserverHandler = new Handler();
 
         dialog = new ProgressDialog(this);
-        dialog.setMessage("Getting the latest news...");
+        dialog.setMessage(getString(R.string.gettinglatestnews));
         dialog.setIndeterminate(true);
         getContentResolver().registerContentObserver(CONTENT_URI, false,
                 new ContentObserver(new Handler(Looper.getMainLooper())) {
                     @Override
                     public void onChange(boolean selfChange) {
-                        Log.d("nano", "onChange for dialog");
                         super.onChange(selfChange);
                         if (dialog != null && dialog.isShowing()) {
                             dialog.dismiss();
@@ -164,11 +178,9 @@ public class MainNewsActivity extends AppCompatActivity
                     }
                 });
 
-        getContentResolver().registerContentObserver(CONTENT_URI, false,
-                new MyContentObserver(contentObserverHandler));
+        contentObserver = new MyContentObserver(contentObserverHandler);
 
         mVisible = true;
-        mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
 
         // Set up the user interaction to manually show or hide the system UI.
@@ -179,27 +191,20 @@ public class MainNewsActivity extends AppCompatActivity
             }
         });
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-        findViewById(R.id.refresh_button).setOnTouchListener(mDelayHideTouchListener);
-        findViewById(R.id.settings_button).setOnTouchListener(mSettingsDelayHideTouchListener);
-
-        // Set margin for right side of settings button
-        final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)
-                findViewById(R.id.settings_button).getLayoutParams();
-        layoutParams.setMargins(0, 0, getNavigationBarHeight(
-                this, getResources().getConfiguration().orientation), 0);
-        //
-
-        final AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        final Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(System.currentTimeMillis());
         final Intent intent = new Intent(this, NewsAlarmManager.class);
-        intent.setAction("com.tbse.threenews.alarm");
-        final PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
-        alarmManager.setRepeating(AlarmManager.RTC, calendar.getTimeInMillis(),
-                1000 * 60, alarmIntent);
+        intent.setAction(getString(R.string.alarm_action_name));
+        alarmPendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+        alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return true;
     }
 
     @Override
@@ -246,13 +251,14 @@ public class MainNewsActivity extends AppCompatActivity
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, final String key) {
-        if (key.equals("allow-mobile-data")) {
+        if (key.equals(getString(R.string.pref_allow_mobile_data))) {
             return;
         }
-        final String source = sharedPreferences.getString(key, "none");
-        if (!source.equals("none")) {
+        final String source = sharedPreferences.getString(key, getString(R.string.source_none));
+        if (!source.equals(getString(R.string.source_none))) {
             final Context context = this;
-            final Runnable runnable = new Runnable() {
+            final Runnable runnable =
+                    new Runnable() {
                 @Override
                 public void run() {
                     MySyncAdapter.startRequestForSource(context, source);
@@ -272,6 +278,29 @@ public class MainNewsActivity extends AppCompatActivity
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                launchSettings();
+                return true;
+
+            case R.id.action_favorite:
+                startRefresh();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+
+        }
+    }
+
+    public int[] getAppWidgetIds() {
+        return AppWidgetManager
+                .getInstance(this)
+                .getAppWidgetIds(new ComponentName(this, MyAppWidget.class));
     }
 
     private class MyContentObserver extends ContentObserver {
@@ -301,7 +330,6 @@ public class MainNewsActivity extends AppCompatActivity
                     final ImageView storyImage = (ImageView) view.findViewById(R.id.story_image);
 
                     if (headline.equals(headlineTV.getText().toString())) {
-                        Log.d("nano", "headline didn't change, skipping");
                         return;
                     }
 
@@ -324,10 +352,10 @@ public class MainNewsActivity extends AppCompatActivity
                         headlineTV.setText(sourceToName.get(source) + ": " + headline);
 
                         final Intent intent = new Intent(getApplicationContext(), MyAppWidget.class);
-                        intent.setAction("android.appwidget.action.APPWIDGET_UPDATE");
-                        intent.putExtra("headline", headline);
-                        intent.putExtra("imageUrl", img);
-                        intent.putExtra("ids", getAppWidgetIds());
+                        intent.setAction(getString(R.string.appwidget_update_action));
+                        intent.putExtra(getString(R.string.extra_headline), headline);
+                        intent.putExtra(getString(R.string.extra_image_url), img);
+                        intent.putExtra(getString(R.string.extra_ids), getAppWidgetIds());
                         sendBroadcast(intent);
                     } else {
                         headlineTV.setText(headline);
@@ -357,7 +385,6 @@ public class MainNewsActivity extends AppCompatActivity
         if (actionBar != null) {
             actionBar.hide();
         }
-        mControlsView.setVisibility(View.GONE);
         mVisible = false;
 
         // Schedule a runnable to remove the status and navigation bar after a delay
@@ -387,41 +414,23 @@ public class MainNewsActivity extends AppCompatActivity
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
     }
 
-    /**
-     * Touch listener to use for in-layout UI controls to delay hiding the
-     * system UI. This is to prevent the jarring behavior of controls going away
-     * while interacting with activity UI.
-     */
-    private final View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                dialog.show();
-                if (!MySyncAdapter.shouldGetNews(view.getContext())) {
-                    Toast.makeText(view.getContext(),
-                            "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
-                    dialog.dismiss();
-                } else {
-                    ContentResolver.requestSync(MySyncAdapter.createSyncAccount(view.getContext()),
-                            AUTHORITY, MySyncAdapter.getSettingsBundle());
-                }
-            }
-            return false;
-        }
-    };
+    private void launchSettings() {
+        getSupportFragmentManager().beginTransaction()
+                .replace(android.R.id.content, settingsFragment)
+                .commit();
+    }
 
-    private final View.OnTouchListener mSettingsDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-                getSupportFragmentManager().beginTransaction()
-                        .replace(android.R.id.content, settingsFragment)
-                        .commit();
-            }
-            return false;
+    private void startRefresh() {
+        dialog.show();
+        if (!MySyncAdapter.shouldGetNews(this)) {
+            Toast.makeText(this,
+                    R.string.cantupdatenewsondata, Toast.LENGTH_LONG).show();
+            dialog.dismiss();
+        } else {
+            ContentResolver.requestSync(MySyncAdapter.createSyncAccount(this),
+                    AUTHORITY, MySyncAdapter.getSettingsBundle());
         }
-    };
+    }
 
     @SuppressLint("InlinedApi")
     private void show() {
@@ -435,9 +444,10 @@ public class MainNewsActivity extends AppCompatActivity
         mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
     }
 
-    public int[] getAppWidgetIds() {
-        return AppWidgetManager
-                .getInstance(this)
-                .getAppWidgetIds(new ComponentName(this, MyAppWidget.class));
+    private int numberOfWidgets() {
+        return AppWidgetManager.getInstance(this)
+                .getAppWidgetIds(new ComponentName(this, MyAppWidget.class))
+                .length;
     }
+
 }

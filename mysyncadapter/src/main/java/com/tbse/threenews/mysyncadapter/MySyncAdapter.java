@@ -24,13 +24,14 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.crash.FirebaseCrash;
 
 import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -55,7 +56,6 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     @DebugLog
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-        Log.d("nano", "MySyncAdapter init");
         queue = Volley.newRequestQueue(getContext());
         sourceToName = getHashMapFromStringArrayIds(R.array.newssources, R.array.newssourcesnames);
     }
@@ -70,34 +70,31 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 @Override
                 public void run() {
                     Toast.makeText(getContext(),
-                            "Can't update news while on mobile data!", Toast.LENGTH_LONG).show();
+                            R.string.cantupdateondata, Toast.LENGTH_LONG).show();
                 }
             });
             return;
         }
 
-        Log.d("nano", "deleting all, onPerformSync");
         getContext().getContentResolver().delete(CONTENT_URI, null, null);
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        startRequestForSource(getContext(), prefs.getString("news_source", "cnn"));
+        startRequestForSource(getContext(), prefs.getString(getContext().getString(R.string.news_source), "cnn"));
     }
 
     public static void startRequestForSource(Context context, String source) {
         final StringRequest stringRequest = new StringRequest(Request.Method.GET,
-                context.getString(R.string.apiurl)
-                        + "?source=" + source + "&apiKey="
-                        + context.getString(R.string.newsapikey),
+                context.getString(R.string.apiurl, source,
+                        context.getString(R.string.newsapikey)),
                 new MyResponseListener(context, source), new MyErrorListener());
         stringRequest.setTag(context);
-        Log.d("nano", "Making API call...");
         queue.add(stringRequest);
     }
 
     public static boolean shouldGetNews(Context context) {
         return checkWifiOnAndConnected(context)
                 || PreferenceManager.getDefaultSharedPreferences(context)
-                .getBoolean("allow-mobile-data", false);
+                .getBoolean(context.getString(R.string.pref_allow_mobile_data), false);
     }
 
     private static boolean checkWifiOnAndConnected(Context context) {
@@ -117,10 +114,10 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private static class MyResponseListener implements Response.Listener<String> {
         private String source;
-        private WeakReference<Context> context;
+        private Context context;
 
         MyResponseListener(Context context, String source) {
-            this.context = new WeakReference<>(context);
+            this.context = context;
             this.source = source;
         }
 
@@ -128,42 +125,47 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         @DebugLog
         public void onResponse(String response) {
             try {
+
+                final Bundle bundle = new Bundle();
+                bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "news_api_response_id");
+                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "News API Response");
+                bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "image");
+
+                final FirebaseAnalytics mFirebaseAnalytics;
+                mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
+                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
+
                 final JSONObject respJSON = new JSONObject(response);
-                final JSONArray array = respJSON.getJSONArray("articles");
+                final JSONArray array = respJSON.getJSONArray(context.getString(R.string.articles));
                 final ArrayList<String> titles = new ArrayList<>();
                 Log.d("nano", "responded with " + array.length() + " articles");
-                if (context.get() == null) {
-                    return;
-                }
-                context.get().getContentResolver().delete(CONTENT_URI, null, null);
+                context.getContentResolver().delete(CONTENT_URI, null, null);
 
                 for (int i = 0; i < array.length(); i++) {
                     final JSONObject jsonArticle = array.getJSONObject(i);
-                    if (jsonArticle.get("title").equals(JSONObject.NULL)
-                            || jsonArticle.get("urlToImage").equals(JSONObject.NULL)
-                            || jsonArticle.get("url").equals(JSONObject.NULL)
-                            || jsonArticle.get("publishedAt").equals(JSONObject.NULL)
+                    if (jsonArticle.get(context.getString(R.string.json_title)).equals(JSONObject.NULL)
+                            || jsonArticle.get(context.getString(R.string.json_title)).equals(JSONObject.NULL)
+                            || jsonArticle.get(context.getString(R.string.cv_url_link)).equals(JSONObject.NULL)
+                            || jsonArticle.get(context.getString(R.string.cv_pub_at)).equals(JSONObject.NULL)
                             ) {
                         continue;
                     }
-                    final String title = jsonArticle.getString("title");
+                    final String title = jsonArticle.getString(context.getString(R.string.json_title));
                     if (titles.contains(title) || title.length() < 1) {
-                        Log.d("nano", "title problem");
                         continue;
                     }
                     titles.add(title);
                     final ContentValues contentValues = new ContentValues();
-                    contentValues.put(IMG, jsonArticle.getString("urlToImage"));
+                    contentValues.put(IMG, jsonArticle.getString(context.getString(R.string.cv_url_image)));
                     contentValues.put(HEADLINE, title);
                     contentValues.put(SOURCE, source);
-                    contentValues.put(LINK, jsonArticle.getString("url"));
-                    final DateTime dateTime = new DateTime(jsonArticle.get("publishedAt"));
+                    contentValues.put(LINK, jsonArticle.getString(context.getString(R.string.cv_url_link)));
+                    final DateTime dateTime = new DateTime(jsonArticle.get(context.getString(R.string.cv_pub_at)));
                     contentValues.put(DATE, dateTime.getMillis() / 1000);
-                    Log.d("nano", "insert " + title);
-                    context.get().getContentResolver().insert(CONTENT_URI, contentValues);
+                    context.getContentResolver().insert(CONTENT_URI, contentValues);
                 }
             } catch (JSONException e) {
-                Log.e("nano", "json error: " + e);
+                FirebaseCrash.report(e);
             }
         }
     }
@@ -190,7 +192,6 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         settingsBundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         return settingsBundle;
     }
-
 
     private HashMap<String, String> getHashMapFromStringArrayIds(final int a, final int b) {
         final String[] sources = getContext().getResources().getStringArray(a);

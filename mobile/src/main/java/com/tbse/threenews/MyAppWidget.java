@@ -6,7 +6,6 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.RemoteViews;
 
 import com.squareup.picasso.Picasso;
@@ -21,7 +20,6 @@ public class MyAppWidget extends AppWidgetProvider {
 
         // Perform this loop procedure for each App Widget that belongs to this provider
         for (int appWidgetId : appWidgetIds) {
-            // Create an Intent to launch ExampleActivity
             final Intent intent = new Intent(context, MainNewsActivity.class);
             final PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
 
@@ -37,7 +35,6 @@ public class MyAppWidget extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         final Bundle extras = intent.getExtras();
-//        int appId;
         int[] appIds;
 
         final AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
@@ -47,24 +44,17 @@ public class MyAppWidget extends AppWidgetProvider {
 
         if (extras == null) return;
 
-//        appId = extras.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
-//
-//        if (appId != 0) {
-//            Log.d("nano", "changing...");
-//            remoteViews.setTextViewText(R.id.headline, "wazzup");
-//            appWidgetManager.updateAppWidget(appId, remoteViews);
-//            return;
-//        }
-        appIds = extras.getIntArray("ids");
+        appIds = extras.getIntArray(context.getString(R.string.extra_ids));
 
         if (appIds == null) return;
         for (int a : appIds) {
-            Log.d("nano", "changing...");
-            remoteViews.setTextViewText(R.id.headline, intent.getStringExtra("headline"));
+            remoteViews.setTextViewText(R.id.headline, intent.getStringExtra(
+                    context.getString(R.string.extra_headline)
+            ));
             appWidgetManager.updateAppWidget(a, remoteViews);
 
             Picasso.with(context)
-                    .load(intent.getStringExtra("imageUrl"))
+                    .load(intent.getStringExtra(context.getString(R.string.extra_image_url)))
                     .into(remoteViews, R.id.main_image, new int[] { a });
         }
     }

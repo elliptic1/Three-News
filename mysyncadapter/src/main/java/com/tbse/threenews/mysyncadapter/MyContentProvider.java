@@ -13,7 +13,8 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.util.Log;
+
+import com.google.firebase.crash.FirebaseCrash;
 
 import java.util.HashMap;
 
@@ -41,6 +42,7 @@ public class MyContentProvider extends ContentProvider {
     public static final String HEADLINE = "HEADLINE";
     public static final String LINK = "LINK";
     public static final String DATE = "DATE";
+
 
     public static final String[] PROJECTION = new String[]{
             _ID, IMG, SOURCE, HEADLINE, LINK, DATE
@@ -70,6 +72,7 @@ public class MyContentProvider extends ContentProvider {
                         selectionArgs);
                 break;
             default:
+                FirebaseCrash.report(new Throwable("IAE Unknown URI: " + uri));
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
         if (getContext() != null) {
@@ -87,6 +90,7 @@ public class MyContentProvider extends ContentProvider {
             case NEWS_ID:
                 return "vnd.android.cursor.item/vnd.tbse.threenews";
             default:
+                FirebaseCrash.report(new Throwable("IAE Unsupported URI: " + uri));
                 throw new IllegalArgumentException("Unsupported URI: " + uri);
         }
     }
@@ -101,10 +105,11 @@ public class MyContentProvider extends ContentProvider {
             if (getContext() != null) {
                 getContext().getContentResolver().notifyChange(_uri, null);
             } else {
-                Log.e("nano", "Couldn't notify of change, context was null");
+                FirebaseCrash.report(new Throwable("Couldn't notify of change, context was null"));
             }
             return _uri;
         }
+        FirebaseCrash.report(new Throwable("Failed to add record: " + uri));
         throw new SQLiteException("Failed to add record: " + uri);
     }
 
@@ -138,6 +143,7 @@ public class MyContentProvider extends ContentProvider {
                 qb.appendWhere(_ID + "=" + uri.getPathSegments().get(1));
                 break;
             default:
+                FirebaseCrash.report(new Throwable("Unknown URI " + uri));
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
 
@@ -164,6 +170,7 @@ public class MyContentProvider extends ContentProvider {
                         selectionArgs);
                 break;
             default:
+                FirebaseCrash.report(new Throwable("Unknown URI " + uri));
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
         if (getContext() != null) {

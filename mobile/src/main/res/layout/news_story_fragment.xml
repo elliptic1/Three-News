@@ -23,7 +23,7 @@
         android:background="@drawable/textborder"
         android:padding="10dp"
         android:textColor="#FFFFFF"
-        android:text="Loading..."
+        android:text="@string/loading"
         android:textSize="16sp" />
 
 </RelativeLayout>

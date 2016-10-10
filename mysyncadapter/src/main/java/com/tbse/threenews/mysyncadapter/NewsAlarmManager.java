@@ -19,7 +19,7 @@ public class NewsAlarmManager extends BroadcastReceiver {
     @Override
     @DebugLog
     public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals("com.tbse.threenews.alarm")) {
+        if (intent.getAction().equals(context.getString(R.string.alarm_action_name))) {
             ContentResolver.requestSync(MySyncAdapter.createSyncAccount(context),
                     AUTHORITY, MySyncAdapter.getSettingsBundle());
         }
