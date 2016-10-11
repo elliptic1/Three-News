@@ -33,6 +33,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MySyncAdapter;
 import com.tbse.threenews.mysyncadapter.MyTransform;
@@ -120,28 +121,6 @@ public class MainNewsActivity extends AppCompatActivity
         }
     };
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        PreferenceManager.getDefaultSharedPreferences(this)
-                .registerOnSharedPreferenceChangeListener(this);
-        ((ThreeNewsApplication) getApplicationContext()).setShouldRun(true);
-        getContentResolver().registerContentObserver(CONTENT_URI, false, contentObserver);
-
-        calendar.setTimeInMillis(System.currentTimeMillis());
-        alarmManager.setRepeating(AlarmManager.RTC, calendar.getTimeInMillis(),
-                1000 * 60, alarmPendingIntent);
-    }
-
-    @Override
-    protected void onPause() {
-        PreferenceManager.getDefaultSharedPreferences(this)
-                .unregisterOnSharedPreferenceChangeListener(this);
-        ((ThreeNewsApplication) getApplicationContext()).setShouldRun( numberOfWidgets() > 0 );
-        getContentResolver().unregisterContentObserver(contentObserver);
-        alarmManager.cancel(alarmPendingIntent);
-        super.onPause();
-    }
 
     @Override
     @DebugLog
@@ -250,6 +229,29 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
+        ((ThreeNewsApplication) getApplicationContext()).setShouldRun(true);
+        getContentResolver().registerContentObserver(CONTENT_URI, false, contentObserver);
+
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        alarmManager.setRepeating(AlarmManager.RTC, calendar.getTimeInMillis(),
+                1000 * 60, alarmPendingIntent);
+    }
+
+    @Override
+    protected void onPause() {
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .unregisterOnSharedPreferenceChangeListener(this);
+        ((ThreeNewsApplication) getApplicationContext()).setShouldRun( numberOfWidgets() > 0 );
+        getContentResolver().unregisterContentObserver(contentObserver);
+        alarmManager.cancel(alarmPendingIntent);
+        super.onPause();
+    }
+
+    @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, final String key) {
         if (key.equals(getString(R.string.pref_allow_mobile_data))) {
             return;
@@ -292,6 +294,7 @@ public class MainNewsActivity extends AppCompatActivity
                 return true;
 
             default:
+                FirebaseCrash.report(new Throwable("invalid menu item selected"));
                 return super.onOptionsItemSelected(item);
 
         }
