@@ -1,7 +1,11 @@
-apply plugin: 'com.android.application'
-apply plugin: 'com.jakewharton.hugo'
+plugins {
+    id 'com.android.application'
+}
 
 android {
+    namespace 'com.tbse.threenews'
+    compileSdk 34
+
     signingConfigs {
         config {
             keyAlias 'keyalias'
@@ -10,20 +14,15 @@ android {
             storePassword 'threenewspass'
         }
     }
-    compileSdkVersion 24
-    buildToolsVersion "24.0.3"
     defaultConfig {
         applicationId "com.tbse.nano.threenews"
-        minSdkVersion 21
-        targetSdkVersion 24
+        minSdk 21
+        targetSdk 34
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         signingConfig signingConfigs.config
-    }
-    dexOptions {
-        javaMaxHeapSize "4g"
     }
     buildTypes {
         release {
@@ -32,28 +31,23 @@ android {
             signingConfig signingConfigs.config
         }
     }
-    productFlavors {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    compile 'com.android.support:multidex:1.0.1'
-    compile 'com.google.android.gms:play-services:9.6.1'
-    compile 'com.android.support:appcompat-v7:24.2.1'
-    compile 'com.android.support:gridlayout-v7:24.2.1'
-    compile 'com.android.support:preference-v7:24.2.1'
-    compile 'com.android.support:support-v4:24.2.1'
-    compile 'com.android.support:design:24.2.1'
-    compile 'com.jakewharton.hugo:hugo-annotations:1.2.1'
-    compile 'com.squareup.picasso:picasso:2.5.2'
-    testCompile 'junit:junit:4.12'
-    compile project(':mysyncadapter')
-    compile 'com.google.firebase:firebase-core:9.6.1'
-    compile 'com.google.firebase:firebase-crash:9.6.1'
-}
+    implementation project(':mysyncadapter')
 
-apply plugin: 'com.google.gms.google-services'
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

@@ -24,8 +24,6 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.firebase.analytics.FirebaseAnalytics;
-import com.google.firebase.crash.FirebaseCrash;
 
 import org.joda.time.DateTime;
 import org.json.JSONArray;
@@ -34,8 +32,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import hugo.weaving.DebugLog;
 
 import static android.content.Context.ACCOUNT_SERVICE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
@@ -53,14 +49,12 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     private static RequestQueue queue;
     public static HashMap<String, String> sourceToName;
 
-    @DebugLog
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
         queue = Volley.newRequestQueue(getContext());
         sourceToName = getHashMapFromStringArrayIds(R.array.newssources, R.array.newssourcesnames);
     }
 
-    @DebugLog
     @Override
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
@@ -122,19 +116,8 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         @Override
-        @DebugLog
         public void onResponse(String response) {
             try {
-
-                final Bundle bundle = new Bundle();
-                bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "news_api_response_id");
-                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "News API Response");
-                bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "image");
-
-                final FirebaseAnalytics mFirebaseAnalytics;
-                mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
-                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
-
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray(context.getString(R.string.articles));
                 final ArrayList<String> titles = new ArrayList<>();
@@ -165,20 +148,18 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     context.getContentResolver().insert(CONTENT_URI, contentValues);
                 }
             } catch (JSONException e) {
-                FirebaseCrash.report(e);
+                Log.e("nano", "failed to parse news response", e);
             }
         }
     }
 
     private static class MyErrorListener implements Response.ErrorListener {
         @Override
-        @DebugLog
         public void onErrorResponse(VolleyError error) {
             Log.e("nano", "got an error: " + error);
         }
     }
 
-    @DebugLog
     public static Account createSyncAccount(Context context) {
         final Account newAccount = new Account(ACCOUNT, ACCOUNT_TYPE);
         final AccountManager accountManager
