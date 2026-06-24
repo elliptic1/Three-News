@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- RSS feed URLs, index-aligned with newssources / newssourcesnames. -->
+    <string-array name="newsfeeds" translatable="false">
+        <item>https://feeds.bbci.co.uk/news/rss.xml</item>
+        <item>https://abcnews.go.com/abcnews/topstories</item>
+        <item>https://feeds.nbcnews.com/nbcnews/public/news</item>
+        <item>https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml</item>
+        <item>https://www.theguardian.com/world/rss</item>
+        <item>https://feeds.arstechnica.com/arstechnica/index</item>
+        <item>https://www.wired.com/feed/rss</item>
+        <item>https://feeds.skynews.com/feeds/rss/world.xml</item>
+    </string-array>
+</resources>

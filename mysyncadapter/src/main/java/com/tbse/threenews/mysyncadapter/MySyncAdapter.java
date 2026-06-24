@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -29,12 +30,15 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.joda.time.DateTime;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
 import static android.content.Context.ACCOUNT_SERVICE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
@@ -51,6 +55,12 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private static RequestQueue queue;
     public static HashMap<String, String> sourceToName;
+
+    // RSS pubDate is RFC-822; feeds use either a zone name ("GMT") or a numeric offset ("+0000").
+    private static final DateTimeFormatter RSS_DATE_ZONE =
+            DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH);
+    private static final DateTimeFormatter RSS_DATE_OFFSET =
+            DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z").withLocale(Locale.ENGLISH);
 
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -76,16 +86,33 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         getContext().getContentResolver().delete(CONTENT_URI, null, null);
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        startRequestForSource(getContext(), prefs.getString(getContext().getString(R.string.news_source), "cnn"));
+        startRequestForSource(getContext(),
+                prefs.getString(getContext().getString(R.string.news_source),
+                        getContext().getString(R.string.default_source)));
     }
 
     public static void startRequestForSource(Context context, String source) {
-        final StringRequest stringRequest = new StringRequest(Request.Method.GET,
-                context.getString(R.string.apiurl, source,
-                        context.getString(R.string.newsapikey)),
+        final String url = feedUrlForSource(context, source);
+        if (url == null) {
+            Log.e("nano", "no feed URL for source " + source);
+            return;
+        }
+        final StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 new MyResponseListener(context, source), new MyErrorListener());
         stringRequest.setTag(context);
         queue.add(stringRequest);
+    }
+
+    // Map the selected source slug to its RSS feed URL via the index-aligned resource arrays.
+    private static String feedUrlForSource(Context context, String source) {
+        final String[] sources = context.getResources().getStringArray(R.array.newssources);
+        final String[] feeds = context.getResources().getStringArray(R.array.newsfeeds);
+        for (int i = 0; i < sources.length && i < feeds.length; i++) {
+            if (sources[i].equals(source)) {
+                return feeds[i];
+            }
+        }
+        return feeds.length > 0 ? feeds[0] : null;
     }
 
     public static boolean shouldGetNews(Context context) {
@@ -135,38 +162,109 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         @Override
         public void onResponse(String response) {
             try {
-                final JSONObject respJSON = new JSONObject(response);
-                final JSONArray array = respJSON.getJSONArray(context.getString(R.string.articles));
+                final XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+                factory.setNamespaceAware(false);
+                final XmlPullParser parser = factory.newPullParser();
+                parser.setInput(new StringReader(response));
+
                 final ArrayList<String> titles = new ArrayList<>();
-                Log.d("nano", "responded with " + array.length() + " articles");
                 context.getContentResolver().delete(CONTENT_URI, null, null);
 
-                for (int i = 0; i < array.length(); i++) {
-                    final JSONObject jsonArticle = array.getJSONObject(i);
-                    if (jsonArticle.get(context.getString(R.string.json_title)).equals(JSONObject.NULL)
-                            || jsonArticle.get(context.getString(R.string.json_title)).equals(JSONObject.NULL)
-                            || jsonArticle.get(context.getString(R.string.cv_url_link)).equals(JSONObject.NULL)
-                            || jsonArticle.get(context.getString(R.string.cv_pub_at)).equals(JSONObject.NULL)
-                            ) {
-                        continue;
+                boolean inItem = false;
+                String title = null, link = null, pubDate = null, image = null;
+                int imageWidth = -1;
+                int event = parser.getEventType();
+                while (event != XmlPullParser.END_DOCUMENT) {
+                    if (event == XmlPullParser.START_TAG) {
+                        final String name = parser.getName();
+                        if ("item".equals(name)) {
+                            inItem = true;
+                            title = link = pubDate = image = null;
+                            imageWidth = -1;
+                        } else if (inItem && "title".equals(name)) {
+                            title = parser.nextText();
+                        } else if (inItem && "link".equals(name)) {
+                            link = parser.nextText();
+                        } else if (inItem && "pubDate".equals(name)) {
+                            pubDate = parser.nextText();
+                        } else if (inItem && ("media:content".equals(name)
+                                || "media:thumbnail".equals(name) || "enclosure".equals(name))) {
+                            final String url = parser.getAttributeValue(null, "url");
+                            if (isImageCandidate(url, parser.getAttributeValue(null, "type"))) {
+                                final int w = parseIntOrZero(parser.getAttributeValue(null, "width"));
+                                // Keep the largest image so upscaling in MyTransform looks decent.
+                                if (image == null || w > imageWidth) {
+                                    image = url;
+                                    imageWidth = w;
+                                }
+                            }
+                        }
+                    } else if (event == XmlPullParser.END_TAG && "item".equals(parser.getName())) {
+                        inItem = false;
+                        title = stripPublisherSuffix(title);
+                        if (title == null || link == null || title.length() < 1 || titles.contains(title)) {
+                            event = parser.next();
+                            continue;
+                        }
+                        titles.add(title);
+                        final ContentValues contentValues = new ContentValues();
+                        contentValues.put(IMG, image);
+                        contentValues.put(HEADLINE, title);
+                        contentValues.put(SOURCE, source);
+                        contentValues.put(LINK, link);
+                        contentValues.put(DATE, parsePubDateSeconds(pubDate));
+                        context.getContentResolver().insert(CONTENT_URI, contentValues);
                     }
-                    final String title = jsonArticle.getString(context.getString(R.string.json_title));
-                    if (titles.contains(title) || title.length() < 1) {
-                        continue;
-                    }
-                    titles.add(title);
-                    final ContentValues contentValues = new ContentValues();
-                    contentValues.put(IMG, jsonArticle.getString(context.getString(R.string.cv_url_image)));
-                    contentValues.put(HEADLINE, title);
-                    contentValues.put(SOURCE, source);
-                    contentValues.put(LINK, jsonArticle.getString(context.getString(R.string.cv_url_link)));
-                    final DateTime dateTime = new DateTime(jsonArticle.get(context.getString(R.string.cv_pub_at)));
-                    contentValues.put(DATE, dateTime.getMillis() / 1000);
-                    context.getContentResolver().insert(CONTENT_URI, contentValues);
+                    event = parser.next();
                 }
-            } catch (JSONException e) {
+                Log.d("nano", "parsed " + titles.size() + " articles from " + source);
+            } catch (Exception e) {
                 Log.e("nano", "failed to parse news response", e);
             }
+        }
+
+        private static boolean isImageCandidate(String url, String type) {
+            if (TextUtils.isEmpty(url)) {
+                return false;
+            }
+            if (type != null && type.startsWith("image")) {
+                return true;
+            }
+            final String lower = url.toLowerCase(Locale.US);
+            return lower.contains(".jpg") || lower.contains(".jpeg")
+                    || lower.contains(".png") || lower.contains(".webp");
+        }
+
+        private static int parseIntOrZero(String s) {
+            try {
+                return s == null ? 0 : Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+
+        // Some aggregated feeds end titles with " - Publisher"; drop it (the source is shown separately).
+        private static String stripPublisherSuffix(String title) {
+            if (title == null) {
+                return null;
+            }
+            final int idx = title.lastIndexOf(" - ");
+            return idx > 0 ? title.substring(0, idx) : title;
+        }
+
+        private static long parsePubDateSeconds(String pubDate) {
+            if (pubDate != null) {
+                try {
+                    return RSS_DATE_ZONE.parseDateTime(pubDate.trim()).getMillis() / 1000;
+                } catch (Exception ignored) {
+                    try {
+                        return RSS_DATE_OFFSET.parseDateTime(pubDate.trim()).getMillis() / 1000;
+                    } catch (Exception ignored2) {
+                        // fall through
+                    }
+                }
+            }
+            return new DateTime().getMillis() / 1000;
         }
     }
 

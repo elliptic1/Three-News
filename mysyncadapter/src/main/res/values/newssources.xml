@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        Source slugs. Each is index-aligned with newssourcesnames (display name)
+        and newsfeeds (RSS feed URL). All feeds are HTTPS and carry images.
+    -->
     <string-array name="newssources">
-        <item>associated-press</item>
-        <item>cnn</item>
-        <item>google-news</item>
-        <item>hacker-news</item>
-        <item>the-new-york-times</item>
-        <item>reuters</item>
-        <item>techcrunch</item>
-        <item>time</item>
-        <item>the-washington-post</item>
+        <item>bbc</item>
+        <item>abc</item>
+        <item>nbc</item>
+        <item>nyt</item>
+        <item>guardian</item>
+        <item>arstechnica</item>
+        <item>wired</item>
+        <item>skynews</item>
     </string-array>
 </resources>
