@@ -2,9 +2,11 @@
 
 A native Android news-display app. It shows the top three headlines from a
 chosen source, both in-app (a full-screen 3-pane layout) and via a home-screen
-widget. Headlines come from [Google News RSS](https://news.google.com/) — free,
-no API key required. News is fetched in the background through an Android
-`SyncAdapter` + `ContentProvider`, refreshed on an alarm.
+widget. Headlines come from the news outlets' own public RSS feeds (BBC, ABC,
+NBC, New York Times, The Guardian, Ars Technica, WIRED, Sky News) — free, no API
+key required, and each story carries its image. News is fetched in the
+background through an Android `SyncAdapter` + `ContentProvider`, refreshed on an
+alarm.
 
 ## Modules
 
@@ -22,8 +24,8 @@ no API key required. News is fetched in the background through an Android
 
 ## Setup
 
-None — headlines are fetched from public Google News RSS feeds, so there is no
-API key to configure. Pick a source from the in-app settings; the default is CNN.
+None — headlines are fetched from the outlets' public RSS feeds, so there is no
+API key to configure. Pick a source from the in-app settings; the default is BBC.
 
 ## Build
 
@@ -43,7 +45,9 @@ repositories. The Firebase Analytics/Crash and Hugo logging integrations were
 removed since they were non-essential and required dead dependencies/config.
 
 The news source was later migrated from newsapi.org (whose v1 endpoint was shut
-down and whose free tier requires a key and is dev-only) to Google News RSS,
-which is free and keyless. The fetch still uses Volley; the response is RSS XML
-parsed with Android's built-in `XmlPullParser`. Google News RSS items carry no
-image, so story tiles show a placeholder.
+down and whose free tier requires a key and is dev-only) to the outlets' own
+public RSS feeds, which are free and keyless. The fetch still uses Volley; the
+response is RSS XML parsed with Android's built-in `XmlPullParser`, and each
+item's image is taken from its `media:content` / `media:thumbnail` / `enclosure`
+tag. Source slug, display name, and feed URL live in the index-aligned
+`newssources` / `newssourcesnames` / `newsfeeds` resource arrays.

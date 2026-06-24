@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -43,6 +44,7 @@ import static android.content.Context.ACCOUNT_SERVICE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
+import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.SOURCE;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT;
@@ -54,9 +56,11 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     private static RequestQueue queue;
     public static HashMap<String, String> sourceToName;
 
-    // Google News RSS publishes RFC-822 dates, e.g. "Tue, 24 Jun 2025 18:30:00 GMT".
-    private static final DateTimeFormatter RSS_DATE =
+    // RSS pubDate is RFC-822; feeds use either a zone name ("GMT") or a numeric offset ("+0000").
+    private static final DateTimeFormatter RSS_DATE_ZONE =
             DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH);
+    private static final DateTimeFormatter RSS_DATE_OFFSET =
+            DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z").withLocale(Locale.ENGLISH);
 
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -82,20 +86,33 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         getContext().getContentResolver().delete(CONTENT_URI, null, null);
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        startRequestForSource(getContext(), prefs.getString(getContext().getString(R.string.news_source), "cnn.com"));
+        startRequestForSource(getContext(),
+                prefs.getString(getContext().getString(R.string.news_source),
+                        getContext().getString(R.string.default_source)));
     }
 
     public static void startRequestForSource(Context context, String source) {
-        final String url;
-        if (context.getString(R.string.rss_top_source).equals(source)) {
-            url = context.getString(R.string.rss_top_url);
-        } else {
-            url = context.getString(R.string.apiurl, source);
+        final String url = feedUrlForSource(context, source);
+        if (url == null) {
+            Log.e("nano", "no feed URL for source " + source);
+            return;
         }
         final StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 new MyResponseListener(context, source), new MyErrorListener());
         stringRequest.setTag(context);
         queue.add(stringRequest);
+    }
+
+    // Map the selected source slug to its RSS feed URL via the index-aligned resource arrays.
+    private static String feedUrlForSource(Context context, String source) {
+        final String[] sources = context.getResources().getStringArray(R.array.newssources);
+        final String[] feeds = context.getResources().getStringArray(R.array.newsfeeds);
+        for (int i = 0; i < sources.length && i < feeds.length; i++) {
+            if (sources[i].equals(source)) {
+                return feeds[i];
+            }
+        }
+        return feeds.length > 0 ? feeds[0] : null;
     }
 
     public static boolean shouldGetNews(Context context) {
@@ -154,20 +171,33 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                 context.getContentResolver().delete(CONTENT_URI, null, null);
 
                 boolean inItem = false;
-                String title = null, link = null, pubDate = null;
+                String title = null, link = null, pubDate = null, image = null;
+                int imageWidth = -1;
                 int event = parser.getEventType();
                 while (event != XmlPullParser.END_DOCUMENT) {
                     if (event == XmlPullParser.START_TAG) {
                         final String name = parser.getName();
                         if ("item".equals(name)) {
                             inItem = true;
-                            title = link = pubDate = null;
+                            title = link = pubDate = image = null;
+                            imageWidth = -1;
                         } else if (inItem && "title".equals(name)) {
                             title = parser.nextText();
                         } else if (inItem && "link".equals(name)) {
                             link = parser.nextText();
                         } else if (inItem && "pubDate".equals(name)) {
                             pubDate = parser.nextText();
+                        } else if (inItem && ("media:content".equals(name)
+                                || "media:thumbnail".equals(name) || "enclosure".equals(name))) {
+                            final String url = parser.getAttributeValue(null, "url");
+                            if (isImageCandidate(url, parser.getAttributeValue(null, "type"))) {
+                                final int w = parseIntOrZero(parser.getAttributeValue(null, "width"));
+                                // Keep the largest image so upscaling in MyTransform looks decent.
+                                if (image == null || w > imageWidth) {
+                                    image = url;
+                                    imageWidth = w;
+                                }
+                            }
                         }
                     } else if (event == XmlPullParser.END_TAG && "item".equals(parser.getName())) {
                         inItem = false;
@@ -178,7 +208,7 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                         }
                         titles.add(title);
                         final ContentValues contentValues = new ContentValues();
-                        // Google News RSS items carry no image; leave IMG null so the UI shows its placeholder.
+                        contentValues.put(IMG, image);
                         contentValues.put(HEADLINE, title);
                         contentValues.put(SOURCE, source);
                         contentValues.put(LINK, link);
@@ -187,13 +217,33 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     }
                     event = parser.next();
                 }
-                Log.d("nano", "parsed " + titles.size() + " articles from Google News RSS");
+                Log.d("nano", "parsed " + titles.size() + " articles from " + source);
             } catch (Exception e) {
                 Log.e("nano", "failed to parse news response", e);
             }
         }
 
-        // Google News titles end with " - Publisher"; drop it since the source is shown separately.
+        private static boolean isImageCandidate(String url, String type) {
+            if (TextUtils.isEmpty(url)) {
+                return false;
+            }
+            if (type != null && type.startsWith("image")) {
+                return true;
+            }
+            final String lower = url.toLowerCase(Locale.US);
+            return lower.contains(".jpg") || lower.contains(".jpeg")
+                    || lower.contains(".png") || lower.contains(".webp");
+        }
+
+        private static int parseIntOrZero(String s) {
+            try {
+                return s == null ? 0 : Integer.parseInt(s.trim());
+            } catch (NumberFormatException e) {
+                return 0;
+            }
+        }
+
+        // Some aggregated feeds end titles with " - Publisher"; drop it (the source is shown separately).
         private static String stripPublisherSuffix(String title) {
             if (title == null) {
                 return null;
@@ -203,11 +253,18 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         private static long parsePubDateSeconds(String pubDate) {
-            try {
-                return RSS_DATE.parseDateTime(pubDate).getMillis() / 1000;
-            } catch (Exception e) {
-                return new DateTime().getMillis() / 1000;
+            if (pubDate != null) {
+                try {
+                    return RSS_DATE_ZONE.parseDateTime(pubDate.trim()).getMillis() / 1000;
+                } catch (Exception ignored) {
+                    try {
+                        return RSS_DATE_OFFSET.parseDateTime(pubDate.trim()).getMillis() / 1000;
+                    } catch (Exception ignored2) {
+                        // fall through
+                    }
+                }
             }
+            return new DateTime().getMillis() / 1000;
         }
     }
 

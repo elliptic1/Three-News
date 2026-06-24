@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        Values are the site domain passed to Google News RSS as `site:<domain>`.
-        The special value "top" selects Google News' unified top-stories feed.
-        Keep this array index-aligned with newssourcesnames.
+        Source slugs. Each is index-aligned with newssourcesnames (display name)
+        and newsfeeds (RSS feed URL). All feeds are HTTPS and carry images.
     -->
     <string-array name="newssources">
-        <item>apnews.com</item>
-        <item>cnn.com</item>
-        <item>top</item>
-        <item>news.ycombinator.com</item>
-        <item>nytimes.com</item>
-        <item>reuters.com</item>
-        <item>techcrunch.com</item>
-        <item>time.com</item>
-        <item>washingtonpost.com</item>
+        <item>bbc</item>
+        <item>abc</item>
+        <item>nbc</item>
+        <item>nyt</item>
+        <item>guardian</item>
+        <item>arstechnica</item>
+        <item>wired</item>
+        <item>skynews</item>
     </string-array>
 </resources>

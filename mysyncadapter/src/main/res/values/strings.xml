@@ -1,12 +1,8 @@
 <resources>
     <string name="app_name">My Sync Adapter</string>
-    <!-- Google News RSS. %1$s is a site domain (e.g. cnn.com); when:2d limits to the last 2 days. -->
-    <string name="apiurl" translatable="false">https://news.google.com/rss/search?q=site:%1$s+when:2d&amp;hl=en-US&amp;gl=US&amp;ceid=US:en</string>
-    <!-- Unified top-stories feed, used when the selected source is "top". -->
-    <string name="rss_top_url" translatable="false">https://news.google.com/rss?hl=en-US&amp;gl=US&amp;ceid=US:en</string>
-    <string name="rss_top_source" translatable="false">top</string>
     <string name="cantupdateondata">Can\'t update news while on mobile data!</string>
     <string name="news_source">news_source</string>
+    <string name="default_source" translatable="false">bbc</string>
     <string name="pref_allow_mobile_data">allow-mobile-data</string>
     <string name="alarm_action_name">com.tbse.threenews.alarm</string>
 </resources>

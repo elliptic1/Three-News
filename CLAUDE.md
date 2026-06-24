@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A native Android app (Java) that displays the top three headlines from a chosen
-[Google News RSS](https://news.google.com/) source — both full-screen in-app (a 3-pane landscape layout)
+RSS-fed source (BBC, NYT, Guardian, …) — both full-screen in-app (a 3-pane landscape layout)
 and as a home-screen widget. Data is fetched in the background via an Android
 `SyncAdapter` + `ContentProvider`, triggered on an alarm. Modernized in 2024 from the original
 2016 toolchain (Gradle 2.14.1 / AGP 2.2.1 / jcenter / `android.support`) to Gradle 8.7 / AGP 8.5.2 /
@@ -28,15 +28,18 @@ password `threenewspass`, key alias `keyalias`. There is no separate debug-vs-re
 
 ## News source
 
-Headlines come from **Google News RSS** — free, no API key, no signup, no quota. The feed URLs live in
-`mysyncadapter/.../res/values/strings.xml`: `apiurl` is the per-source search feed
-(`.../rss/search?q=site:%1$s+when:2d`) and `rss_top_url` is the unified top-stories feed. The selectable
-sources are domains (e.g. `cnn.com`) in `newssources.xml`, plus the sentinel value `top` for the
-top-stories feed; both arrays are index-aligned with `newssourcesnames.xml`.
+Headlines come from the news outlets' own **public RSS feeds** — free, no API key, no signup, no quota.
+A source is described by three **index-aligned** resource arrays in `mysyncadapter/.../res/values/`:
+`newssources.xml` (slug, e.g. `bbc` — stored in the `news_source` pref and the `SOURCE` column),
+`newssourcesnames.xml` (display name), and `newsfeeds.xml` (the HTTPS feed URL). `startRequestForSource`
+resolves slug → URL by walking those arrays; keep all three the same length and order. The default slug
+is `default_source` in `strings.xml`. All feeds must be **HTTPS** — API 34 blocks cleartext, which is
+why the http-only CNN feed was dropped.
 
-The response is RSS XML, parsed with Android's built-in `XmlPullParser` (no extra dependency). Google
-News RSS items have **no image**, so the `IMG` column is left null and story tiles show the placeholder.
-Titles arrive as "Headline - Publisher"; the trailing publisher suffix is stripped on parse.
+The response is RSS XML, parsed with Android's built-in `XmlPullParser` (no extra dependency). Each
+item's image comes from its `media:content` / `media:thumbnail` / `enclosure` tag (the largest by
+`width` is kept); if none, `IMG` is left null and the tile shows the placeholder. `pubDate` is RFC-822
+with either a zone name (`GMT`) or numeric offset (`+0000`), so two Joda formatters are tried.
 
 _History:_ the app originally used newsapi.org with a committed key in `apikeys.xml` (now deleted).
 That endpoint (v1) was shut down and its free tier was dev-only — hence the move to RSS.
@@ -59,7 +62,7 @@ Two Gradle modules, with `:mobile` depending on `:mysyncadapter`:
    that exists only to drive the SyncAdapter framework — no real authentication.
 3. **`MyService`** is the bound SyncAdapter service; it hands the framework a **`MySyncAdapter`**.
 4. **`MySyncAdapter.onPerformSync`** reads the chosen source from SharedPreferences, does a Volley
-   HTTP request to the Google News RSS feed for that source, parses the RSS XML with `XmlPullParser`,
+   HTTP request to that source's RSS feed, parses the RSS XML with `XmlPullParser`,
    and writes rows into the ContentProvider via `CONTENT_URI`. Column constants
    (`_ID`, `IMG`, `SOURCE`, `HEADLINE`, `LINK`, `DATE`) are the contract — defined in
    `MyContentProvider` and imported statically by everyone else.
@@ -69,9 +72,9 @@ Two Gradle modules, with `:mobile` depending on `:mysyncadapter`:
 7. **`MyTransform`** is a Picasso `Transformation` used to fit headline images to the pane size.
 
 Images are loaded with **Picasso**, HTTP via **Volley**, dates via **Joda-Time**. The available
-news sources are defined as parallel arrays in `res/values/newssources.xml` (source ids) and
-`newssourcesnames.xml` (display names); `MySyncAdapter` zips them into a `sourceTo_name` map and
-`SettingsFragment` surfaces them as a preference list.
+news sources are defined as parallel arrays in `res/values/` — `newssources.xml` (slugs),
+`newssourcesnames.xml` (display names), and `newsfeeds.xml` (feed URLs); `MySyncAdapter` zips the first
+two into a `sourceToName` map and `SettingsFragment` surfaces them as a preference list.
 
 ### Things to watch
 
