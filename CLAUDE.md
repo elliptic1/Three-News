@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A native Android app (Java) that displays the top three headlines from a chosen
-[newsapi.org](https://newsapi.org) source — both full-screen in-app (a 3-pane landscape layout)
+[Google News RSS](https://news.google.com/) source — both full-screen in-app (a 3-pane landscape layout)
 and as a home-screen widget. Data is fetched in the background via an Android
 `SyncAdapter` + `ContentProvider`, triggered on an alarm. Modernized in 2024 from the original
 2016 toolchain (Gradle 2.14.1 / AGP 2.2.1 / jcenter / `android.support`) to Gradle 8.7 / AGP 8.5.2 /
@@ -26,10 +26,20 @@ Requires JDK 17, Android SDK for **API 34**. Gradle/AGP download via the bundled
 The release signing config and `keystore.jks` are committed intentionally (demo project) — keystore
 password `threenewspass`, key alias `keyalias`. There is no separate debug-vs-release signing split.
 
-## API key
+## News source
 
-`mysyncadapter/src/main/res/values/apikeys.xml` holds `<string name="newsapikey">`. It is committed
-(not gitignored), so a working key may already be present — check before assuming setup is needed.
+Headlines come from **Google News RSS** — free, no API key, no signup, no quota. The feed URLs live in
+`mysyncadapter/.../res/values/strings.xml`: `apiurl` is the per-source search feed
+(`.../rss/search?q=site:%1$s+when:2d`) and `rss_top_url` is the unified top-stories feed. The selectable
+sources are domains (e.g. `cnn.com`) in `newssources.xml`, plus the sentinel value `top` for the
+top-stories feed; both arrays are index-aligned with `newssourcesnames.xml`.
+
+The response is RSS XML, parsed with Android's built-in `XmlPullParser` (no extra dependency). Google
+News RSS items have **no image**, so the `IMG` column is left null and story tiles show the placeholder.
+Titles arrive as "Headline - Publisher"; the trailing publisher suffix is stripped on parse.
+
+_History:_ the app originally used newsapi.org with a committed key in `apikeys.xml` (now deleted).
+That endpoint (v1) was shut down and its free tier was dev-only — hence the move to RSS.
 
 ## Architecture
 
@@ -38,7 +48,7 @@ Two Gradle modules, with `:mobile` depending on `:mysyncadapter`:
 - **`:mysyncadapter`** (`com.tbse.threenews.mysyncadapter`) — the headless data layer (an Android
   library). Owns fetching, storage, and the sync framework. No UI.
 - **`:mobile`** (`com.tbse.threenews`, applicationId `com.tbse.nano.threenews`) — UI + widget.
-  Reads data only through the ContentProvider; it never calls newsapi directly.
+  Reads data only through the ContentProvider; it never fetches news directly.
 
 ### Data flow (the part that needs multiple files to grasp)
 
@@ -49,9 +59,10 @@ Two Gradle modules, with `:mobile` depending on `:mysyncadapter`:
    that exists only to drive the SyncAdapter framework — no real authentication.
 3. **`MyService`** is the bound SyncAdapter service; it hands the framework a **`MySyncAdapter`**.
 4. **`MySyncAdapter.onPerformSync`** reads the chosen source from SharedPreferences, does a Volley
-   HTTP request to newsapi.org, parses the JSON, and writes rows into the ContentProvider via
-   `CONTENT_URI`. Column constants (`_ID`, `IMG`, `SOURCE`, `HEADLINE`, `LINK`, `DATE`) are the
-   contract — defined in `MyContentProvider` and imported statically by everyone else.
+   HTTP request to the Google News RSS feed for that source, parses the RSS XML with `XmlPullParser`,
+   and writes rows into the ContentProvider via `CONTENT_URI`. Column constants
+   (`_ID`, `IMG`, `SOURCE`, `HEADLINE`, `LINK`, `DATE`) are the contract — defined in
+   `MyContentProvider` and imported statically by everyone else.
 5. **`MyContentProvider`** persists into a SQLite DB (`newsdb`, table `news`, `DBVERSION`).
 6. **`MainNewsActivity`** observes the provider with a `CursorLoader` + `ContentObserver` and
    renders the three stories; **`MyAppWidget`** reads the same provider for the widget.

@@ -29,18 +29,20 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.joda.time.DateTime;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
 import static android.content.Context.ACCOUNT_SERVICE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.HEADLINE;
-import static com.tbse.threenews.mysyncadapter.MyContentProvider.IMG;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.LINK;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.SOURCE;
 import static com.tbse.threenews.mysyncadapter.NewsAlarmManager.ACCOUNT;
@@ -51,6 +53,10 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
 
     private static RequestQueue queue;
     public static HashMap<String, String> sourceToName;
+
+    // Google News RSS publishes RFC-822 dates, e.g. "Tue, 24 Jun 2025 18:30:00 GMT".
+    private static final DateTimeFormatter RSS_DATE =
+            DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH);
 
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
@@ -76,13 +82,17 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         getContext().getContentResolver().delete(CONTENT_URI, null, null);
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-        startRequestForSource(getContext(), prefs.getString(getContext().getString(R.string.news_source), "cnn"));
+        startRequestForSource(getContext(), prefs.getString(getContext().getString(R.string.news_source), "cnn.com"));
     }
 
     public static void startRequestForSource(Context context, String source) {
-        final StringRequest stringRequest = new StringRequest(Request.Method.GET,
-                context.getString(R.string.apiurl, source,
-                        context.getString(R.string.newsapikey)),
+        final String url;
+        if (context.getString(R.string.rss_top_source).equals(source)) {
+            url = context.getString(R.string.rss_top_url);
+        } else {
+            url = context.getString(R.string.apiurl, source);
+        }
+        final StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 new MyResponseListener(context, source), new MyErrorListener());
         stringRequest.setTag(context);
         queue.add(stringRequest);
@@ -135,37 +145,68 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         @Override
         public void onResponse(String response) {
             try {
-                final JSONObject respJSON = new JSONObject(response);
-                final JSONArray array = respJSON.getJSONArray(context.getString(R.string.articles));
+                final XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+                factory.setNamespaceAware(false);
+                final XmlPullParser parser = factory.newPullParser();
+                parser.setInput(new StringReader(response));
+
                 final ArrayList<String> titles = new ArrayList<>();
-                Log.d("nano", "responded with " + array.length() + " articles");
                 context.getContentResolver().delete(CONTENT_URI, null, null);
 
-                for (int i = 0; i < array.length(); i++) {
-                    final JSONObject jsonArticle = array.getJSONObject(i);
-                    if (jsonArticle.get(context.getString(R.string.json_title)).equals(JSONObject.NULL)
-                            || jsonArticle.get(context.getString(R.string.json_title)).equals(JSONObject.NULL)
-                            || jsonArticle.get(context.getString(R.string.cv_url_link)).equals(JSONObject.NULL)
-                            || jsonArticle.get(context.getString(R.string.cv_pub_at)).equals(JSONObject.NULL)
-                            ) {
-                        continue;
+                boolean inItem = false;
+                String title = null, link = null, pubDate = null;
+                int event = parser.getEventType();
+                while (event != XmlPullParser.END_DOCUMENT) {
+                    if (event == XmlPullParser.START_TAG) {
+                        final String name = parser.getName();
+                        if ("item".equals(name)) {
+                            inItem = true;
+                            title = link = pubDate = null;
+                        } else if (inItem && "title".equals(name)) {
+                            title = parser.nextText();
+                        } else if (inItem && "link".equals(name)) {
+                            link = parser.nextText();
+                        } else if (inItem && "pubDate".equals(name)) {
+                            pubDate = parser.nextText();
+                        }
+                    } else if (event == XmlPullParser.END_TAG && "item".equals(parser.getName())) {
+                        inItem = false;
+                        title = stripPublisherSuffix(title);
+                        if (title == null || link == null || title.length() < 1 || titles.contains(title)) {
+                            event = parser.next();
+                            continue;
+                        }
+                        titles.add(title);
+                        final ContentValues contentValues = new ContentValues();
+                        // Google News RSS items carry no image; leave IMG null so the UI shows its placeholder.
+                        contentValues.put(HEADLINE, title);
+                        contentValues.put(SOURCE, source);
+                        contentValues.put(LINK, link);
+                        contentValues.put(DATE, parsePubDateSeconds(pubDate));
+                        context.getContentResolver().insert(CONTENT_URI, contentValues);
                     }
-                    final String title = jsonArticle.getString(context.getString(R.string.json_title));
-                    if (titles.contains(title) || title.length() < 1) {
-                        continue;
-                    }
-                    titles.add(title);
-                    final ContentValues contentValues = new ContentValues();
-                    contentValues.put(IMG, jsonArticle.getString(context.getString(R.string.cv_url_image)));
-                    contentValues.put(HEADLINE, title);
-                    contentValues.put(SOURCE, source);
-                    contentValues.put(LINK, jsonArticle.getString(context.getString(R.string.cv_url_link)));
-                    final DateTime dateTime = new DateTime(jsonArticle.get(context.getString(R.string.cv_pub_at)));
-                    contentValues.put(DATE, dateTime.getMillis() / 1000);
-                    context.getContentResolver().insert(CONTENT_URI, contentValues);
+                    event = parser.next();
                 }
-            } catch (JSONException e) {
+                Log.d("nano", "parsed " + titles.size() + " articles from Google News RSS");
+            } catch (Exception e) {
                 Log.e("nano", "failed to parse news response", e);
+            }
+        }
+
+        // Google News titles end with " - Publisher"; drop it since the source is shown separately.
+        private static String stripPublisherSuffix(String title) {
+            if (title == null) {
+                return null;
+            }
+            final int idx = title.lastIndexOf(" - ");
+            return idx > 0 ? title.substring(0, idx) : title;
+        }
+
+        private static long parsePubDateSeconds(String pubDate) {
+            try {
+                return RSS_DATE.parseDateTime(pubDate).getMillis() / 1000;
+            } catch (Exception e) {
+                return new DateTime().getMillis() / 1000;
             }
         }
     }
