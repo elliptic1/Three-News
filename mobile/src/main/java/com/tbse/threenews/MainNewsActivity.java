@@ -278,19 +278,15 @@ public class MainNewsActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_settings:
-                launchSettings();
-                return true;
-
-            case R.id.action_favorite:
-                startRefresh();
-                return true;
-
-            default:
-                return super.onOptionsItemSelected(item);
-
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            launchSettings();
+            return true;
+        } else if (id == R.id.action_favorite) {
+            startRefresh();
+            return true;
         }
+        return super.onOptionsItemSelected(item);
     }
 
     public int[] getAppWidgetIds() {
