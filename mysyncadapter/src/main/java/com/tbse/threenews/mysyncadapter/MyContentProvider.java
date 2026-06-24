@@ -11,16 +11,16 @@ import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.util.Log;
 
-import com.google.firebase.crash.FirebaseCrash;
+import androidx.annotation.NonNull;
 
 import java.util.HashMap;
 
-import hugo.weaving.DebugLog;
-
 public class MyContentProvider extends ContentProvider {
+
+    private static final String TAG = "MyContentProvider";
 
     private static UriMatcher sUriMatcher;
     private NewsDatabaseHelper newsDatabaseHelper;
@@ -58,7 +58,6 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
-    @DebugLog
     public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
         int count = 0;
         switch (sUriMatcher.match(uri)) {
@@ -72,7 +71,7 @@ public class MyContentProvider extends ContentProvider {
                         selectionArgs);
                 break;
             default:
-                FirebaseCrash.report(new Throwable("IAE Unknown URI: " + uri));
+                Log.e(TAG, "IAE Unknown URI: " + uri);
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
         if (getContext() != null) {
@@ -82,7 +81,6 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
-    @DebugLog
     public String getType(@NonNull Uri uri) {
         switch (sUriMatcher.match(uri)) {
             case NEWS:
@@ -90,13 +88,12 @@ public class MyContentProvider extends ContentProvider {
             case NEWS_ID:
                 return "vnd.android.cursor.item/vnd.tbse.threenews";
             default:
-                FirebaseCrash.report(new Throwable("IAE Unsupported URI: " + uri));
+                Log.e(TAG, "IAE Unsupported URI: " + uri);
                 throw new IllegalArgumentException("Unsupported URI: " + uri);
         }
     }
 
     @Override
-    @DebugLog
     public Uri insert(@NonNull Uri uri, ContentValues values) {
         final long rowid = db.insert(TABLENAME, "", values);
 
@@ -105,16 +102,15 @@ public class MyContentProvider extends ContentProvider {
             if (getContext() != null) {
                 getContext().getContentResolver().notifyChange(_uri, null);
             } else {
-                FirebaseCrash.report(new Throwable("Couldn't notify of change, context was null"));
+                Log.e(TAG, "Couldn't notify of change, context was null");
             }
             return _uri;
         }
-        FirebaseCrash.report(new Throwable("Failed to add record: " + uri));
+        Log.e(TAG, "Failed to add record: " + uri);
         throw new SQLiteException("Failed to add record: " + uri);
     }
 
     @Override
-    @DebugLog
     public boolean onCreate() {
         newsDatabaseHelper = new NewsDatabaseHelper(getContext(), DBNAME, DBVERSION);
         db = newsDatabaseHelper.getWritableDatabase();
@@ -130,7 +126,6 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
-    @DebugLog
     public Cursor query(@NonNull Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
         final SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
@@ -143,7 +138,7 @@ public class MyContentProvider extends ContentProvider {
                 qb.appendWhere(_ID + "=" + uri.getPathSegments().get(1));
                 break;
             default:
-                FirebaseCrash.report(new Throwable("Unknown URI " + uri));
+                Log.e(TAG, "Unknown URI " + uri);
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
 
@@ -156,7 +151,6 @@ public class MyContentProvider extends ContentProvider {
     }
 
     @Override
-    @DebugLog
     public int update(@NonNull Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
         int count = 0;
@@ -170,7 +164,7 @@ public class MyContentProvider extends ContentProvider {
                         selectionArgs);
                 break;
             default:
-                FirebaseCrash.report(new Throwable("Unknown URI " + uri));
+                Log.e(TAG, "Unknown URI " + uri);
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
         if (getContext() != null) {

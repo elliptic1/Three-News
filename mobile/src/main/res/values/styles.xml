@@ -22,7 +22,7 @@
         <item name="android:background">@color/black_overlay</item>
     </style>
 
-    <style name="AppPreferenceTheme" parent="PreferenceFragment">
+    <style name="AppPreferenceTheme" parent="@style/PreferenceThemeOverlay">
         <item name="android:background">@color/trans_silver</item>
     </style>
 

@@ -21,7 +21,8 @@ public class MyAppWidget extends AppWidgetProvider {
         // Perform this loop procedure for each App Widget that belongs to this provider
         for (int appWidgetId : appWidgetIds) {
             final Intent intent = new Intent(context, MainNewsActivity.class);
-            final PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
+            final PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
+                    PendingIntent.FLAG_IMMUTABLE);
 
             // Get the layout for the App Widget and attach an on-click listener
             // to the button
@@ -53,7 +54,7 @@ public class MyAppWidget extends AppWidgetProvider {
             ));
             appWidgetManager.updateAppWidget(a, remoteViews);
 
-            Picasso.with(context)
+            Picasso.get()
                     .load(intent.getStringExtra(context.getString(R.string.extra_image_url)))
                     .into(remoteViews, R.id.main_image, new int[] { a });
         }

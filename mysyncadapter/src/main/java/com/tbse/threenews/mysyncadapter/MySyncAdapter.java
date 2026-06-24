@@ -9,8 +9,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,8 +27,6 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.firebase.analytics.FirebaseAnalytics;
-import com.google.firebase.crash.FirebaseCrash;
 
 import org.joda.time.DateTime;
 import org.json.JSONArray;
@@ -34,8 +35,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import hugo.weaving.DebugLog;
 
 import static android.content.Context.ACCOUNT_SERVICE;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
@@ -53,14 +52,12 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     private static RequestQueue queue;
     public static HashMap<String, String> sourceToName;
 
-    @DebugLog
     MySyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
         queue = Volley.newRequestQueue(getContext());
         sourceToName = getHashMapFromStringArrayIds(R.array.newssources, R.array.newssourcesnames);
     }
 
-    @DebugLog
     @Override
     public void onPerformSync(Account account, Bundle extras,
                               String authority, ContentProviderClient provider,
@@ -98,12 +95,26 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static boolean checkWifiOnAndConnected(Context context) {
-        final WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        if (wifiMgr.isWifiEnabled()) { // Wi-Fi adapter is ON
-            final WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-            return wifiInfo.getNetworkId() != -1;
+        // Use ConnectivityManager transport checks rather than the deprecated
+        // WifiManager.getConnectionInfo().getNetworkId(), which modern Android
+        // redacts to -1 unless the app holds location permission (which it does
+        // not). Only ACCESS_NETWORK_STATE is required here.
+        final ConnectivityManager cm =
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            final Network network = cm.getActiveNetwork();
+            if (network == null) {
+                return false;
+            }
+            final NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
         } else {
-            return false; // Wi-Fi adapter is OFF
+            final NetworkInfo info = cm.getActiveNetworkInfo();
+            return info != null && info.isConnected()
+                    && info.getType() == ConnectivityManager.TYPE_WIFI;
         }
     }
 
@@ -122,19 +133,8 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         @Override
-        @DebugLog
         public void onResponse(String response) {
             try {
-
-                final Bundle bundle = new Bundle();
-                bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "news_api_response_id");
-                bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "News API Response");
-                bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "image");
-
-                final FirebaseAnalytics mFirebaseAnalytics;
-                mFirebaseAnalytics = FirebaseAnalytics.getInstance(context);
-                mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
-
                 final JSONObject respJSON = new JSONObject(response);
                 final JSONArray array = respJSON.getJSONArray(context.getString(R.string.articles));
                 final ArrayList<String> titles = new ArrayList<>();
@@ -165,20 +165,18 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
                     context.getContentResolver().insert(CONTENT_URI, contentValues);
                 }
             } catch (JSONException e) {
-                FirebaseCrash.report(e);
+                Log.e("nano", "failed to parse news response", e);
             }
         }
     }
 
     private static class MyErrorListener implements Response.ErrorListener {
         @Override
-        @DebugLog
         public void onErrorResponse(VolleyError error) {
             Log.e("nano", "got an error: " + error);
         }
     }
 
-    @DebugLog
     public static Account createSyncAccount(Context context) {
         final Account newAccount = new Account(ACCOUNT, ACCOUNT_TYPE);
         final AccountManager accountManager

@@ -5,8 +5,6 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 
-import hugo.weaving.DebugLog;
-
 /**
  * Created by todd on 9/18/16.
  */
@@ -17,7 +15,6 @@ public class NewsAlarmManager extends BroadcastReceiver {
     public static final String AUTHORITY = "com.tbse.threenews.provider";
 
     @Override
-    @DebugLog
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction().equals(context.getString(R.string.alarm_action_name))) {
             ContentResolver.requestSync(MySyncAdapter.createSyncAccount(context),

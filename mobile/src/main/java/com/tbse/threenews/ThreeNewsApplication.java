@@ -1,12 +1,10 @@
 package com.tbse.threenews;
 
 import android.content.Context;
-import android.os.Bundle;
-import android.support.multidex.MultiDexApplication;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
-import com.google.firebase.analytics.FirebaseAnalytics;
+import androidx.multidex.MultiDexApplication;
 
 /**
  * Created by todd on 9/18/16.
@@ -17,7 +15,6 @@ public class ThreeNewsApplication extends MultiDexApplication {
     private int deviceWidth;
     private int deviceHeight;
     public boolean shouldRun = true;
-    private FirebaseAnalytics mFirebaseAnalytics;
 
     @Override
     public void onCreate() {
@@ -29,15 +26,6 @@ public class ThreeNewsApplication extends MultiDexApplication {
 
         deviceWidth = metrics.widthPixels;
         deviceHeight = metrics.heightPixels;
-
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-
-        final Bundle bundle = new Bundle();
-        bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "news_app_open_id");
-        bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "App Opened");
-        bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "text");
-        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
-
     }
 
 

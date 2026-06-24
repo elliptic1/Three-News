@@ -19,12 +19,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
-import android.support.v4.app.LoaderManager;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -33,7 +27,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.crash.FirebaseCrash;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.CursorLoader;
+import androidx.loader.content.Loader;
+
 import com.squareup.picasso.Picasso;
 import com.tbse.threenews.mysyncadapter.MySyncAdapter;
 import com.tbse.threenews.mysyncadapter.MyTransform;
@@ -42,8 +42,6 @@ import com.tbse.threenews.mysyncadapter.NewsAlarmManager;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import hugo.weaving.DebugLog;
 
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.CONTENT_URI;
 import static com.tbse.threenews.mysyncadapter.MyContentProvider.DATE;
@@ -123,7 +121,6 @@ public class MainNewsActivity extends AppCompatActivity
 
 
     @Override
-    @DebugLog
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -172,7 +169,8 @@ public class MainNewsActivity extends AppCompatActivity
 
         final Intent intent = new Intent(this, NewsAlarmManager.class);
         intent.setAction(getString(R.string.alarm_action_name));
-        alarmPendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0);
+        alarmPendingIntent = PendingIntent.getBroadcast(this, 0, intent,
+                PendingIntent.FLAG_IMMUTABLE);
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
@@ -187,7 +185,6 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @Override
-    @DebugLog
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
 
@@ -211,19 +208,16 @@ public class MainNewsActivity extends AppCompatActivity
     }
 
     @Override
-    @DebugLog
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         return new CursorLoader(MainNewsActivity.this, CONTENT_URI, PROJECTION, null, null, null);
     }
 
     @Override
-    @DebugLog
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
 
     }
 
     @Override
-    @DebugLog
     public void onLoaderReset(Loader<Cursor> loader) {
 
     }
@@ -294,7 +288,6 @@ public class MainNewsActivity extends AppCompatActivity
                 return true;
 
             default:
-                FirebaseCrash.report(new Throwable("invalid menu item selected"));
                 return super.onOptionsItemSelected(item);
 
         }
@@ -345,7 +338,7 @@ public class MainNewsActivity extends AppCompatActivity
                         myTransform = new MyTransform(deviceWidth * 0.382f, deviceHeight / 2.0f);
                     }
 
-                    Picasso.with(storyImage.getContext())
+                    Picasso.get()
                             .load(img)
                             .placeholder(R.drawable.loading)
                             .transform(myTransform)
