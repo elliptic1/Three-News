@@ -321,10 +321,6 @@ public class MainNewsActivity extends AppCompatActivity
                     final TextView headlineTV = (TextView) view.findViewById(R.id.headline);
                     final ImageView storyImage = (ImageView) view.findViewById(R.id.story_image);
 
-                    if (headline.equals(headlineTV.getText().toString())) {
-                        return;
-                    }
-
                     storyImage.setContentDescription(headline);
 
                     final MyTransform myTransform;
