@@ -9,8 +9,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -92,12 +95,26 @@ public class MySyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static boolean checkWifiOnAndConnected(Context context) {
-        final WifiManager wifiMgr = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        if (wifiMgr.isWifiEnabled()) { // Wi-Fi adapter is ON
-            final WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-            return wifiInfo.getNetworkId() != -1;
+        // Use ConnectivityManager transport checks rather than the deprecated
+        // WifiManager.getConnectionInfo().getNetworkId(), which modern Android
+        // redacts to -1 unless the app holds location permission (which it does
+        // not). Only ACCESS_NETWORK_STATE is required here.
+        final ConnectivityManager cm =
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            final Network network = cm.getActiveNetwork();
+            if (network == null) {
+                return false;
+            }
+            final NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+            return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
         } else {
-            return false; // Wi-Fi adapter is OFF
+            final NetworkInfo info = cm.getActiveNetworkInfo();
+            return info != null && info.isConnected()
+                    && info.getType() == ConnectivityManager.TYPE_WIFI;
         }
     }
 
